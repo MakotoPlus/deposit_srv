@@ -19,6 +19,8 @@ from rest_framework import routers
 from deposit_srv.quickstart import views
 from django.contrib import admin
 from deposit.url import router as deposit_router
+from rest_framework_jwt.views import obtain_jwt_token # JWT認証のために追加
+
 
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
@@ -29,6 +31,7 @@ router.register(r'groups', views.GroupViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     url(r'^admin/', admin.site.urls),
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^api/deposit/', include(deposit_router.urls)),
+    url(r'^api/', include(deposit_router.urls)),
+    #path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    url(r'^api-auth/', obtain_jwt_token), # 認証のためのURL    
 ]

@@ -25,7 +25,13 @@ SECRET_KEY = 'a+6ha@8-do)2rdq3)udp3-004)14q=!ggrz_8e&$^2g1*kms=c'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+if DEBUG is True:
+    CORS_ALLOW_ALL_ORIGINS = True
+# Whitenoise で提供される静的ファイルに CORS を許可しない
+WHITENOISE_ALLOW_ALL_ORIGINS = False
+
+
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -38,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'corsheaders',  # Django CORS Headers
     'deposit',
     'users'
 ]
@@ -46,6 +53,7 @@ AUTH_USER_MODEL = 'users.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',        # Django CORS Headers
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -55,8 +63,23 @@ MIDDLEWARE = [
 ]
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10
+    'PAGE_SIZE': 10,
+    # フィルタの追加 エラーのためコメントアウト
+    # 'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
+    # JWT認証の追加
+
+    #全てのリクエスとでトークンが必要
+    #'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
+    #GETのみトークン不要
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticatedOrReadOnly',),
+    'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_jwt.authentication.JSONWebTokenAuthentication',),
 }
+JWT_AUTH = {
+    # トークンの期限を無効に設定
+    'JWT_VERIFY_EXPIRATION': False,
+}
+
+
 ROOT_URLCONF = 'deposit_srv.urls'
 
 TEMPLATES = [
