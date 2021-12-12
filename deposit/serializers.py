@@ -4,7 +4,7 @@ from .models import (Tm_DepositGroup,
 
 
 #預金項目グループ
-class Tm_DepositGroupSerializer(serializers.HyperlinkedModelSerializer):
+class Tm_DepositGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tm_DepositGroup
         fields = [
@@ -16,7 +16,7 @@ class Tm_DepositGroupSerializer(serializers.HyperlinkedModelSerializer):
         ]
 
 #金種
-class Tm_MoneyTypeSerializer(serializers.HyperlinkedModelSerializer):
+class Tm_MoneyTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tm_MoneyType
         fields = [
@@ -27,7 +27,7 @@ class Tm_MoneyTypeSerializer(serializers.HyperlinkedModelSerializer):
         ]
 
 #預金項目
-class Tm_DepositItemSerializer(serializers.HyperlinkedModelSerializer):
+class Tm_DepositItemSerializer(serializers.ModelSerializer):
 
     deposit_group_key = Tm_DepositGroupSerializer()
     moneyType_key = Tm_MoneyTypeSerializer()
@@ -45,7 +45,7 @@ class Tm_DepositItemSerializer(serializers.HyperlinkedModelSerializer):
         ]
 
 #貯金設定
-class Tt_SavingsSerializer(serializers.HyperlinkedModelSerializer):
+class Tt_SavingsSerializer(serializers.ModelSerializer):
     depositItem_key = Tm_DepositItemSerializer()
     class Meta:
         model = Tt_Savings
@@ -60,7 +60,7 @@ class Tt_SavingsSerializer(serializers.HyperlinkedModelSerializer):
         ]
 
 #預金トラン
-class Tt_DepositSerializer(serializers.HyperlinkedModelSerializer):
+class Tt_DepositSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tt_Deposit
         fields = [
