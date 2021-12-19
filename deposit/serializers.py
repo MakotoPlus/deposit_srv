@@ -15,6 +15,7 @@ class Tm_DepositGroupSerializer(serializers.ModelSerializer):
             'delete_flag',
             'update_date',
             'u_user',
+            'deposititem_deposit_group_key',
         ]
 
 #金種
@@ -93,6 +94,39 @@ class Tt_DepositSerializer(serializers.ModelSerializer):
         fields = [
             'deposit_key',
             'depositItem_key',
+            'deposit_type',
+            'deposit_value',
+            'insert_yyyymmdd',
+            'memo',
+            'delete_flag',
+            'update_date',
+            'u_user',
+        ]
+
+# 預金トランリスト用の預金項目
+class DepositItemReleatedSerializer(serializers.ModelSerializer):
+    deposit_group_name = serializers.ReadOnlyField(source='deposit_group_key.deposit_group_name')
+    moneyType_name = serializers.ReadOnlyField(source='moneyType_key.moneyType_name')
+    # u_user = serializers.ReadOnlyField(source='u_user.username')
+    class Meta:
+        model = Tm_DepositItem
+        fields = [
+            'depositItem_name',
+            'deposit_group_name',
+            'moneyType_name',
+            'savings_flag',
+        ]
+
+
+# 預金トランリスト
+class Tt_DepositListSerializer(serializers.ModelSerializer):
+    depositItem_key = DepositItemReleatedSerializer()
+    u_user = serializers.ReadOnlyField(source='u_user.username')
+    class Meta:
+        model = Tt_Deposit
+        fields = [
+            'deposit_key',
+            'depositItem_key', 
             'deposit_type',
             'deposit_value',
             'insert_yyyymmdd',

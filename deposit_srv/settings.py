@@ -73,7 +73,7 @@ REST_FRAMEWORK = {
     # Default設定 GETのみトークン不要
     #'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticatedOrReadOnly',),
     # JSonWebToken
-    'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_jwt.authentication.JSONWebTokenAuthentication',),
+    # 'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_jwt.authentication.JSONWebTokenAuthentication',),
 }
 JWT_AUTH = {
     # トークンの期限を無効に設定

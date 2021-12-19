@@ -24,6 +24,8 @@ from .serializers import (
     Tm_DepositItemListSerializer,
     Tt_SavingsSerializer,
     Tt_DepositSerializer,
+    Tt_DepositListSerializer,
+    DepositItemReleatedSerializer,
 )
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -90,3 +92,14 @@ class Tt_DepositViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     def perform_create(self, serializer):
         serializer.save(u_user=self.request.user)
+
+#預金トランリスト
+class Tt_DepositListViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Tt_Deposit.objects.all()
+    serializer_class = Tt_DepositListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    def get_queryset(self):
+        queryset = Tt_Deposit.objects.all()
+        return queryset
+    # def perform_create(self, serializer):
+    #    serializer.save(u_user=self.request.user)
