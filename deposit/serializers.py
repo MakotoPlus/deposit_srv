@@ -5,6 +5,7 @@ from .models import (Tm_DepositGroup,
 
 #預金項目グループ
 class Tm_DepositGroupSerializer(serializers.ModelSerializer):
+    u_user = serializers.ReadOnlyField(source='u_user.username')
     class Meta:
         model = Tm_DepositGroup
         fields = [
@@ -13,10 +14,12 @@ class Tm_DepositGroupSerializer(serializers.ModelSerializer):
             'order_dsp',
             'delete_flag',
             'update_date',
+            'u_user',
         ]
 
 #金種
 class Tm_MoneyTypeSerializer(serializers.ModelSerializer):
+    u_user = serializers.ReadOnlyField(source='u_user.username')
     class Meta:
         model = Tm_MoneyType
         fields = [
@@ -24,13 +27,14 @@ class Tm_MoneyTypeSerializer(serializers.ModelSerializer):
             'moneyType_name',
             'delete_flag',
             'update_date',
+            'u_user',
         ]
 
 #預金項目
 class Tm_DepositItemSerializer(serializers.ModelSerializer):
-
-    deposit_group_key = Tm_DepositGroupSerializer()
-    moneyType_key = Tm_MoneyTypeSerializer()
+    #monyType_key = serializers.ReadOnlyField(source='moneyType_key.moneyType_name')
+    #monyType_key = serializers.ReadOnlyField(source='moneyType_key.moneyType_name')
+    u_user = serializers.ReadOnlyField(source='u_user.username')
     class Meta:
         model = Tm_DepositItem
         fields = [
@@ -42,11 +46,31 @@ class Tm_DepositItemSerializer(serializers.ModelSerializer):
             'order_dsp',
             'delete_flag',
             'update_date',
+            'u_user',
+        ]
+#預金項目リストボックス用        
+class Tm_DepositItemListSerializer(serializers.ModelSerializer):
+    deposit_group_key = Tm_DepositGroupSerializer()
+    moneyType_key = Tm_MoneyTypeSerializer()
+    u_user = serializers.ReadOnlyField(source='u_user.username')
+    class Meta:
+        model = Tm_DepositItem
+        fields = [
+            'depositItem_key',
+            'depositItem_name',
+            'deposit_group_key',
+            'moneyType_key',
+            'savings_flag',
+            'order_dsp',
+            'delete_flag',
+            'update_date',
+            'u_user',
         ]
 
 #貯金設定
 class Tt_SavingsSerializer(serializers.ModelSerializer):
-    depositItem_key = Tm_DepositItemSerializer()
+    # depositItem_key = Tm_DepositItemSerializer()
+    u_user = serializers.ReadOnlyField(source='u_user.username')
     class Meta:
         model = Tt_Savings
         fields = [
@@ -57,10 +81,13 @@ class Tt_SavingsSerializer(serializers.ModelSerializer):
             'order_dsp',
             'delete_flag',
             'update_date',
+            'u_user',
         ]
 
 #預金トラン
 class Tt_DepositSerializer(serializers.ModelSerializer):
+    # depositItem_key = Tm_DepositItemSerializer()
+    u_user = serializers.ReadOnlyField(source='u_user.username')
     class Meta:
         model = Tt_Deposit
         fields = [
@@ -72,4 +99,5 @@ class Tt_DepositSerializer(serializers.ModelSerializer):
             'memo',
             'delete_flag',
             'update_date',
+            'u_user',
         ]

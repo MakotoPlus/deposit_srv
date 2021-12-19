@@ -16,11 +16,11 @@ class AdminTm_Tm_DepositItem(admin.ModelAdmin):
     list_display = ('depositItem_key', 'depositItem_name', 'deposit_group_key', 'moneyType_key', 'savings_flag', 'order_dsp', 'delete_flag', 'update_date',  )
     ordering = ('depositItem_key', )
 
-@admin.register(models.Tm_MoneyType)
-class AdminTm_Tm_MoneyType(admin.ModelAdmin):
-    fields = ('moneyType_name', 'delete_flag', 'update_date',  )
-    list_display = ('moneyType_key', 'moneyType_name', 'delete_flag', 'update_date',  )
-    ordering = ('moneyType_key', )
+#@admin.register(models.Tm_MoneyType)
+#class AdminTm_Tm_MoneyType(admin.ModelAdmin):
+#    fields = ('moneyType_name', 'delete_flag', 'update_date',  )
+#    list_display = ('moneyType_key', 'moneyType_name', 'delete_flag', 'update_date',  )
+#    ordering = ('moneyType_key', )
 
 @admin.register(models.Tt_Savings)
 class AdminTm_Tt_Savings(admin.ModelAdmin):

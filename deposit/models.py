@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from deposit.model_base import ModelBase
 from django.contrib.auth import get_user_model
+from users.models import User
 
 User = get_user_model()
 # Create your models here.
@@ -21,7 +22,7 @@ class Tm_DepositGroup(ModelBase):
     order_dsp = models.IntegerField(verbose_name='表示順序')
     delete_flag = models.BooleanField(verbose_name='削除フラグ')
     update_date = models.DateTimeField(verbose_name='更新日時')
-    #u_user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='depositgroup_u_user', verbose_name='更新者')
+    u_user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='depositgroup_u_user', verbose_name='更新者')
     def __str__(self):
         return self.deposit_group_name
 
@@ -39,10 +40,9 @@ class Tm_MoneyType(ModelBase):
     moneyType_name = models.CharField(max_length=40, verbose_name='金種名')
     delete_flag = models.BooleanField(verbose_name='削除フラグ')
     update_date = models.DateTimeField(verbose_name='更新日時')
-    #u_user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='moneytype_u_user', verbose_name='更新者')
+    u_user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='moneytype_u_user', verbose_name='更新者')
     def __str__(self):
         return self.moneyType_name
-
 
 #預金項目
 class Tm_DepositItem(ModelBase):
@@ -63,7 +63,7 @@ class Tm_DepositItem(ModelBase):
     order_dsp = models.IntegerField(verbose_name='表示順序')
     delete_flag = models.BooleanField(verbose_name='削除フラグ')
     update_date = models.DateTimeField(verbose_name='更新日時')
-    #u_user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='deposititem_u_user', verbose_name='更新者')
+    u_user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='deposititem_u_user', verbose_name='更新者')
     def __str__(self):
         return self.depositItem_name
 
@@ -82,7 +82,7 @@ class Tt_Savings(ModelBase):
     deposit_value = models.IntegerField(verbose_name='金額')
     delete_flag = models.BooleanField(verbose_name='削除フラグ')
     update_date = models.DateTimeField(verbose_name='更新日時')
-    #u_user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='savings_u_user', verbose_name='更新者')
+    u_user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='savings_u_user', verbose_name='更新者')
 
 #預金トラン
 class Tt_Deposit(ModelBase):
@@ -98,5 +98,5 @@ class Tt_Deposit(ModelBase):
     insert_yyyymmdd = models.CharField(max_length=10, verbose_name='登録年月日')
     delete_flag = models.BooleanField(verbose_name='削除フラグ')
     update_date = models.DateTimeField(verbose_name='更新日時')
-    #u_user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='deposit_u_user', verbose_name='更新者')
+    u_user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='deposit_u_user', verbose_name='更新者')
     memo = models.CharField(null=True, max_length=1024, verbose_name='補足')

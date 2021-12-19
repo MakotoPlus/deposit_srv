@@ -29,9 +29,12 @@ router.register(r'groups', views.GroupViewSet)
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
-    path('', include(router.urls)),
+    # path('', include(router.urls)),
+    path('', include(deposit_router.urls)),
     url(r'^admin/', admin.site.urls),
     url(r'^api/', include(deposit_router.urls)),
     #path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^api-auth/', obtain_jwt_token), # 認証のためのURL    
 ]
+
+#urlpatterns = format_suffix_patterns(urlpatterns)

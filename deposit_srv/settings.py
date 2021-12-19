@@ -69,9 +69,10 @@ REST_FRAMEWORK = {
     # JWT認証の追加
 
     #全てのリクエスとでトークンが必要
-    #'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
-    #GETのみトークン不要
-    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticatedOrReadOnly',),
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
+    # Default設定 GETのみトークン不要
+    #'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticatedOrReadOnly',),
+    # JSonWebToken
     'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_jwt.authentication.JSONWebTokenAuthentication',),
 }
 JWT_AUTH = {
