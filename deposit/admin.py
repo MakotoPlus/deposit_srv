@@ -24,8 +24,8 @@ class AdminTm_Tm_DepositItem(admin.ModelAdmin):
 
 @admin.register(models.Tt_Savings)
 class AdminTm_Tt_Savings(admin.ModelAdmin):
-    fields = ('depositItem_key', 'order_dsp', 'deposit_type', 'deposit_value', 'delete_flag', 'update_date',  )
-    list_display = ('savings_key', 'depositItem_key', 'order_dsp', 'deposit_type', 'deposit_value', 'delete_flag', 'update_date',  )
+    fields = ('depositItem_key', 'deposit_type', 'deposit_value', 'delete_flag', 'update_date',  )
+    list_display = ('savings_key', 'depositItem_key', 'deposit_type', 'deposit_value', 'delete_flag', 'update_date',  )
     ordering = ('savings_key', )
 
 @admin.register(models.Tt_Deposit)

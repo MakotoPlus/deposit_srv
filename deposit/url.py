@@ -6,7 +6,9 @@ from .views import (
     Tm_DepositGroupViewSet, Tm_MoneyTypeViewSet, 
     Tm_DepositItemViewSet,  Tt_SavingsViewSet, 
     Tt_DepositViewSet, Tm_DepositItemListViewSet,
-    Tt_DepositListViewSet)
+    Tt_DepositListViewSet,
+    Tt_SavingsListViewSet,
+    )
 
 router = routers.DefaultRouter()
 router.register(r'users', UserViewSet)
@@ -18,3 +20,4 @@ router.register(r'deposit_item', Tm_DepositItemViewSet)
 router.register(r'savings', Tt_SavingsViewSet)
 router.register(r'deposit', Tt_DepositViewSet)
 router.register(r'deposit_list', Tt_DepositListViewSet, basename="deposit_list")
+router.register(r'savings_list', Tt_SavingsListViewSet, basename="savings_list")

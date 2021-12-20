@@ -77,7 +77,6 @@ class Tt_Savings(ModelBase):
 
     savings_key = models.AutoField(primary_key=True, verbose_name='貯金設定ID')
     depositItem_key = models.ForeignKey(Tm_DepositItem, on_delete=models.PROTECT, related_name='savings_deposititem_key', verbose_name='預金項目ID')
-    order_dsp = models.IntegerField(verbose_name='表示順序')
     deposit_type = models.IntegerField(verbose_name='貯金タイプ')
     deposit_value = models.IntegerField(verbose_name='金額')
     delete_flag = models.BooleanField(verbose_name='削除フラグ')
