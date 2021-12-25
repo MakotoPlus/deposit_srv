@@ -151,6 +151,8 @@ class Tt_SavingsListViewSet(DepostBaseReadOnlyModelViewSet):
 def saving_group_samary_list(request, format=None):
     if request.method == 'GET':
         queryset = Tm_DepositGroup.objects.annotate(
-            sum_value=Sum('deposititem_deposit_group_key__savings_deposititem_key__deposit_value'))
+            sum_value=Sum(
+                'deposititem_deposit_group_key__savings_deposititem_key__deposit_value')
+        ).filter(sum_value__isnull=False)
         serializer = SavingGroupSumarySerializer(queryset, many=True)
         return Response(serializer.data)
