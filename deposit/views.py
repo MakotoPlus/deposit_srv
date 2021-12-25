@@ -13,7 +13,10 @@ from users.serializers import UserSerializer, GroupSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db.models import Sum
-
+from rest_framework.views import APIView
+from rest_framework import mixins
+from rest_framework import generics
+from django.db.models import F
 
 from .models import (
     Tm_DepositGroup, 
@@ -33,6 +36,7 @@ from .serializers import (
     DepositItemReleatedSerializer,
     Tt_SavingsListSerializer,
     SavingGroupSumarySerializer,
+    SavingsTotalSerializer,
 )
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -147,12 +151,29 @@ class Tt_SavingsListViewSet(DepostBaseReadOnlyModelViewSet):
     #    serializer.save(u_user=self.request.user)
 
 #貯金グループサマリーリスト
-@api_view(['GET'])
-def saving_group_samary_list(request, format=None):
-    if request.method == 'GET':
-        queryset = Tm_DepositGroup.objects.annotate(
-            sum_value=Sum(
-                'deposititem_deposit_group_key__savings_deposititem_key__deposit_value')
-        ).filter(sum_value__isnull=False)
-        serializer = SavingGroupSumarySerializer(queryset, many=True)
+#class SavingGroupSumaryList(mixins.ListModelMixin,
+#                  generics.GenericAPIView):
+class SavingGroupSumaryList(DepostBaseReadOnlyModelViewSet):
+    # permission_classes = [permissions.IsAuthenticated]
+    queryset = Tm_DepositGroup.objects.annotate(
+        sum_value=Sum(F('deposititem_deposit_group_key__savings_deposititem_key__deposit_value') 
+        * F('deposititem_deposit_group_key__savings_deposititem_key__deposit_type'))).filter(
+        sum_value__isnull=False
+    )
+    serializer_class = SavingGroupSumarySerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+#預金総合計値
+class SavingsTotal(viewsets.ViewSet):
+    #queryset = Tt_Savings.objects.aggregate(value=Sum(F('deposit_type')*F('deposit_value')))
+    #serializer_class = SavingsTotalSerializer
+    #def get(self, request, *args, **kwargs):
+    #    return self.list(request, *args, **kwargs)
+    #def get(self, request, format=None):
+    def list(self, request):
+        queryset = Tt_Savings.objects.aggregate(value=Sum(F('deposit_type')*F('deposit_value')))
+        serializer = SavingsTotalSerializer(queryset)
         return Response(serializer.data)
+

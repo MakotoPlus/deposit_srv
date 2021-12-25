@@ -9,9 +9,9 @@ from .views import (
     Tt_DepositViewSet, Tm_DepositItemListViewSet,
     Tt_DepositListViewSet,
     Tt_SavingsListViewSet,
+    SavingGroupSumaryList,
+    SavingsTotal,
     )
-
-from .views import saving_group_samary_list
 
 from django.urls import path
 from rest_framework.urlpatterns import format_suffix_patterns
@@ -27,8 +27,11 @@ router.register(r'savings', Tt_SavingsViewSet)
 router.register(r'deposit', Tt_DepositViewSet)
 router.register(r'deposit_list', Tt_DepositListViewSet, basename="deposit_list")
 router.register(r'savings_list', Tt_SavingsListViewSet, basename="savings_list")
+router.register(r'saving_sumary_list', SavingGroupSumaryList, basename="saving_sumary_list")
+router.register(r'savings_total', SavingsTotal, basename="savings_total")
+
+
 urlpatterns = [
-    url(r'saving_sumary_list/', saving_group_samary_list, name="saving_group_samary_list"),
+    #url(r'^savings_total', SavingsTotal.as_view(), name='savings_total'),
 ]
-urlpatterns = format_suffix_patterns(urlpatterns)
 urlpatterns += router.urls

@@ -159,3 +159,7 @@ class SavingGroupSumarySerializer(serializers.Serializer):
     order_dsp = serializers.IntegerField()
     sum_value = serializers.IntegerField()
 
+#預金総合計値用
+class SavingsTotalSerializer(serializers.Serializer):
+    value = serializers.IntegerField()
+
