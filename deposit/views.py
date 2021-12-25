@@ -10,6 +10,11 @@ from django.contrib.auth.models import Group
 from users.models import User
 from users.serializers import UserSerializer, GroupSerializer
 
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.db.models import Sum
+
+
 from .models import (
     Tm_DepositGroup, 
     Tm_MoneyType,
@@ -27,6 +32,7 @@ from .serializers import (
     Tt_DepositListSerializer,
     DepositItemReleatedSerializer,
     Tt_SavingsListSerializer,
+    SavingGroupSumarySerializer,
 )
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -47,58 +53,82 @@ class GroupViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
+#
+# このプロジェクトの共通ModelViewSet拡張クラス
+class DepostBaseModelViewSet(viewsets.ModelViewSet):
+    def perform_create(self, serializer):
+        serializer.save(u_user=self.request.user)
+    #
+    # Pageing の切替
+    # URLパラメータに no_pageが設定されていたらPagingをOffにするためにNoneを返す
+    def paginate_queryset(self, queryset):
+        if 'no_page' in self.request.query_params :
+            return None
+        return super().paginate_queryset(queryset)
+
+
+#
+# このプロジェクトの共通ModelViewSet拡張クラス
+class DepostBaseReadOnlyModelViewSet(viewsets.ReadOnlyModelViewSet):
+    #
+    # Pageing の切替
+    # URLパラメータに no_pageが設定されていたらPagingをOffにするためにNoneを返す
+    def paginate_queryset(self, queryset):
+        if 'no_page' in self.request.query_params :
+            return None
+        return super().paginate_queryset(queryset)
+
+
 
 #預金項目グループ
-class Tm_DepositGroupViewSet(viewsets.ModelViewSet):
+class Tm_DepositGroupViewSet(DepostBaseModelViewSet):
     queryset = Tm_DepositGroup.objects.all()
     serializer_class = Tm_DepositGroupSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
     def perform_create(self, serializer):
         serializer.save(u_user=self.request.user)
     
 #金種
-class Tm_MoneyTypeViewSet(viewsets.ModelViewSet):
+class Tm_MoneyTypeViewSet(DepostBaseModelViewSet):
     queryset = Tm_MoneyType.objects.all()
     serializer_class = Tm_MoneyTypeSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
     def perform_create(self, serializer):
         serializer.save(u_user=self.request.user)
 #預金項目
-class Tm_DepositItemViewSet(viewsets.ModelViewSet):
+class Tm_DepositItemViewSet(DepostBaseModelViewSet):
     queryset = Tm_DepositItem.objects.all()
     serializer_class = Tm_DepositItemSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
     def perform_create(self, serializer):
         serializer.save(u_user=self.request.user)
 
 #預金項目リストボックス用
-class Tm_DepositItemListViewSet(viewsets.ModelViewSet):
+class Tm_DepositItemListViewSet(DepostBaseModelViewSet):
     queryset = Tm_DepositItem.objects.all()
     serializer_class = Tm_DepositItemListSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
 
 
 #貯金設定
-class Tt_SavingsViewSet(viewsets.ModelViewSet):
+class Tt_SavingsViewSet(DepostBaseModelViewSet):
     queryset = Tt_Savings.objects.all()
     serializer_class = Tt_SavingsSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
     def perform_create(self, serializer):
         serializer.save(u_user=self.request.user)
 #預金トラン
-class Tt_DepositViewSet(viewsets.ModelViewSet):
+class Tt_DepositViewSet(DepostBaseModelViewSet):
     queryset = Tt_Deposit.objects.all()
     serializer_class = Tt_DepositSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
     def perform_create(self, serializer):
         serializer.save(u_user=self.request.user)
 
 #預金トランリスト
-class Tt_DepositListViewSet(viewsets.ReadOnlyModelViewSet):
+class Tt_DepositListViewSet(DepostBaseReadOnlyModelViewSet):
     queryset = Tt_Deposit.objects.all()
     serializer_class = Tt_DepositListSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
         queryset = Tt_Deposit.objects.all()
         return queryset
@@ -106,12 +136,21 @@ class Tt_DepositListViewSet(viewsets.ReadOnlyModelViewSet):
     #    serializer.save(u_user=self.request.user)
 
 #貯金トランリスト
-class Tt_SavingsListViewSet(viewsets.ReadOnlyModelViewSet):
+class Tt_SavingsListViewSet(DepostBaseReadOnlyModelViewSet):
     queryset = Tt_Savings.objects.all()
     serializer_class = Tt_SavingsListSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
         queryset = Tt_Savings.objects.all()
         return queryset
     # def perform_create(self, serializer):
     #    serializer.save(u_user=self.request.user)
+
+#貯金グループサマリーリスト
+@api_view(['GET'])
+def saving_group_samary_list(request, format=None):
+    if request.method == 'GET':
+        queryset = Tm_DepositGroup.objects.annotate(
+            sum_value=Sum('deposititem_deposit_group_key__savings_deposititem_key__deposit_value'))
+        serializer = SavingGroupSumarySerializer(queryset, many=True)
+        return Response(serializer.data)

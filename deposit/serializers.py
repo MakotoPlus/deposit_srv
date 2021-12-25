@@ -151,3 +151,11 @@ class Tt_SavingsListSerializer(serializers.ModelSerializer):
             'u_user',
         ]
 
+#貯金グループリスト表示用
+class SavingGroupSumarySerializer(serializers.Serializer):
+    deposit_group_key = serializers.IntegerField()
+    deposit_group_name = serializers.CharField(required=False, allow_blank=True, max_length=40)
+    #deposit_group_value = serializers.IntegerField()
+    order_dsp = serializers.IntegerField()
+    sum_value = serializers.IntegerField()
+
