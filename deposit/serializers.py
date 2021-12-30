@@ -110,7 +110,9 @@ class DepositItemReleatedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tm_DepositItem
         fields = [
+            'depositItem_key',
             'depositItem_name',
+            'deposit_group_key',
             'deposit_group_name',
             'moneyType_name',
             'savings_flag',

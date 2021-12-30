@@ -18,14 +18,14 @@ from rest_framework import mixins
 from rest_framework import generics
 from django.db.models import F
 
-from .models import (
+from deposit.models import (
     Tm_DepositGroup, 
     Tm_MoneyType,
     Tm_DepositItem,
     Tt_Savings,
     Tt_Deposit
 )
-from .serializers import (
+from deposit.serializers import (
     Tm_DepositGroupSerializer,
     Tm_MoneyTypeSerializer,
     Tm_DepositItemSerializer,
@@ -150,30 +150,46 @@ class Tt_SavingsListViewSet(DepostBaseReadOnlyModelViewSet):
     # def perform_create(self, serializer):
     #    serializer.save(u_user=self.request.user)
 
-#貯金グループサマリーリスト
-#class SavingGroupSumaryList(mixins.ListModelMixin,
-#                  generics.GenericAPIView):
 class SavingGroupSumaryList(DepostBaseReadOnlyModelViewSet):
+    '''
+    #貯金グループサマリーリスト
+
+    削除フラグデータ除外
+    SELECT "Tm_DepositGroup"."deposit_group_key", "Tm_DepositGroup"."deposit_group_name", "Tm_DepositGroup"."order_dsp", "Tm_DepositGroup"."delete_flag", "Tm_DepositGroup"."update_date", "Tm_DepositGroup"."u_user_id", SUM(("Tt_Savings"."deposit_value" * "Tt_Savings"."deposit_type")) AS "sum_value" FROM "Tm_DepositGroup" INNER JOIN "Tm_DepositItem" ON ("Tm_DepositGroup"."deposit_group_key" = "Tm_DepositItem"."deposit_group_key_id") INNER JOIN "Tt_Savings" ON ("Tm_DepositItem"."depositItem_key" = "Tt_Savings"."depositItem_key_id") WHERE "Tt_Savings"."delete_flag" = 0 GROUP BY "Tm_DepositGroup"."deposit_group_key", "Tm_DepositGroup"."deposit_group_name", "Tm_DepositGroup"."order_dsp", "Tm_DepositGroup"."delete_flag", "Tm_DepositGroup"."update_date", "Tm_DepositGroup"."u_user_id" HAVING SUM(("Tt_Savings"."deposit_value" * "Tt_Savings"."deposit_type")) IS NOT NULL ORDER BY "Tm_DepositGroup"."order_dsp" 
+
+    '''
     # permission_classes = [permissions.IsAuthenticated]
-    queryset = Tm_DepositGroup.objects.annotate(
-        sum_value=Sum(F('deposititem_deposit_group_key__savings_deposititem_key__deposit_value') 
-        * F('deposititem_deposit_group_key__savings_deposititem_key__deposit_type'))).filter(
-        sum_value__isnull=False
-    )
+    #queryset = Tm_DepositGroup.objects.annotate(
+    #    sum_value=Sum(F('deposititem_deposit_group_key__savings_deposititem_key__deposit_value') 
+    #    * F('deposititem_deposit_group_key__savings_deposititem_key__deposit_type'))).filter(
+    #    sum_value__isnull=False
+    #)
+    queryset = Tm_DepositGroup.objects.filter(
+        deposititem_deposit_group_key__savings_deposititem_key__delete_flag=False
+        ).annotate(sum_value=Sum(F('deposititem_deposit_group_key__savings_deposititem_key__deposit_value') * 
+        F('deposititem_deposit_group_key__savings_deposititem_key__deposit_type'))
+        ).filter(sum_value__isnull=False)
+
     serializer_class = SavingGroupSumarySerializer
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
-#預金総合計値
 class SavingsTotal(viewsets.ViewSet):
+    '''
+    預金総合計値
+
+    削除フラグデータ除外
+
+    '''
     #queryset = Tt_Savings.objects.aggregate(value=Sum(F('deposit_type')*F('deposit_value')))
     #serializer_class = SavingsTotalSerializer
     #def get(self, request, *args, **kwargs):
     #    return self.list(request, *args, **kwargs)
     #def get(self, request, format=None):
     def list(self, request):
-        queryset = Tt_Savings.objects.aggregate(value=Sum(F('deposit_type')*F('deposit_value')))
+        #queryset = Tt_Savings.objects.aggregate(value=Sum(F('deposit_type')*F('deposit_value')))
+        queryset = Tt_Savings.objects.filter(delete_flag=False).aggregate(value=Sum(F('deposit_type')*F('deposit_value')))
         serializer = SavingsTotalSerializer(queryset)
         return Response(serializer.data)
 
