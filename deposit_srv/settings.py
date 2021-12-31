@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',  # Django CORS Headers
     'deposit',
-    'users'
+    'users',
+    'django_filters',
 ]
 #カスタムユーザ
 AUTH_USER_MODEL = 'users.User'
@@ -63,9 +64,10 @@ MIDDLEWARE = [
 ]
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    # 検索時の返却件数
     'PAGE_SIZE': 10,
-    # フィルタの追加 エラーのためコメントアウト
-    # 'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
+    # フィルタの追加
+    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
     # JWT認証の追加
 
     #全てのリクエスとでトークンが必要

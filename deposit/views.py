@@ -39,6 +39,9 @@ from deposit.serializers import (
     SavingsTotalSerializer,
 )
 
+from django_filters.rest_framework import DjangoFilterBackend
+from django_filters import rest_framework as filters 
+
 class UserViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
@@ -120,18 +123,35 @@ class Tt_SavingsViewSet(DepostBaseModelViewSet):
     # permission_classes = [permissions.IsAuthenticated]
     def perform_create(self, serializer):
         serializer.save(u_user=self.request.user)
+
+#預金フィルタークラス
+class Tt_DepositListFilter(filters.FilterSet):
+    delete_flag = filters.BooleanFilter(field_name="delete_flag")
+    depositItem_key = filters.ModelMultipleChoiceFilter(
+        queryset=Tm_DepositItem.objects.all()
+    )
+    class Meta:
+        model = Tt_Deposit
+        fields = {
+            'insert_yyyymmdd' : ['lt','gt']
+        }
+
 #預金トラン
 class Tt_DepositViewSet(DepostBaseModelViewSet):
     queryset = Tt_Deposit.objects.all()
     serializer_class = Tt_DepositSerializer
-    # permission_classes = [permissions.IsAuthenticated]
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = Tt_DepositListFilter
     def perform_create(self, serializer):
         serializer.save(u_user=self.request.user)
+
+
 
 #預金トランリスト
 class Tt_DepositListViewSet(DepostBaseReadOnlyModelViewSet):
     queryset = Tt_Deposit.objects.all()
     serializer_class = Tt_DepositListSerializer
+    filterset_class = Tt_DepositListFilter
     # permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
         queryset = Tt_Deposit.objects.all()
