@@ -41,6 +41,7 @@ from deposit.serializers import (
 
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as filters 
+from rest_framework.pagination import LimitOffsetPagination
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -76,7 +77,7 @@ class DepostBaseModelViewSet(viewsets.ModelViewSet):
 
 #
 # このプロジェクトの共通ModelViewSet拡張クラス
-class DepostBaseReadOnlyModelViewSet(viewsets.ReadOnlyModelViewSet):
+class DepositBaseReadOnlyModelViewSet(viewsets.ReadOnlyModelViewSet):
     #
     # Pageing の切替
     # URLパラメータに no_pageが設定されていたらPagingをOffにするためにNoneを返す
@@ -133,7 +134,7 @@ class Tt_DepositListFilter(filters.FilterSet):
     class Meta:
         model = Tt_Deposit
         fields = {
-            'insert_yyyymmdd' : ['lt','gt']
+            'insert_yyyymmdd' : ['lte','gte']
         }
 
 #預金トラン
@@ -146,23 +147,25 @@ class Tt_DepositViewSet(DepostBaseModelViewSet):
         serializer.save(u_user=self.request.user)
 
 
-
 #預金トランリスト
-class Tt_DepositListViewSet(DepostBaseReadOnlyModelViewSet):
+class Tt_DepositListViewSet(DepositBaseReadOnlyModelViewSet):
     queryset = Tt_Deposit.objects.all()
     serializer_class = Tt_DepositListSerializer
     filterset_class = Tt_DepositListFilter
+    # ページネーション
+    pagination_class = LimitOffsetPagination
     # permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
         queryset = Tt_Deposit.objects.all()
         return queryset
-    # def perform_create(self, serializer):
-    #    serializer.save(u_user=self.request.user)
+
 
 #貯金トランリスト
-class Tt_SavingsListViewSet(DepostBaseReadOnlyModelViewSet):
+class Tt_SavingsListViewSet(DepositBaseReadOnlyModelViewSet):
     queryset = Tt_Savings.objects.all()
     serializer_class = Tt_SavingsListSerializer
+    # ページネーション
+    pagination_class = LimitOffsetPagination
     # permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
         queryset = Tt_Savings.objects.all()
@@ -170,7 +173,7 @@ class Tt_SavingsListViewSet(DepostBaseReadOnlyModelViewSet):
     # def perform_create(self, serializer):
     #    serializer.save(u_user=self.request.user)
 
-class SavingGroupSumaryList(DepostBaseReadOnlyModelViewSet):
+class SavingGroupSumaryList(DepositBaseReadOnlyModelViewSet):
     '''
     #貯金グループサマリーリスト
 

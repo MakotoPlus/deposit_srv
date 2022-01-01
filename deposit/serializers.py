@@ -88,6 +88,8 @@ class Tt_SavingsSerializer(serializers.ModelSerializer):
 class Tt_DepositSerializer(serializers.ModelSerializer):
     # depositItem_key = Tm_DepositItemSerializer()
     u_user = serializers.ReadOnlyField(source='u_user.username')
+    # 空文字,Nullを許容する
+    memo = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     class Meta:
         model = Tt_Deposit
         fields = [
