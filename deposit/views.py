@@ -1,14 +1,15 @@
 from django.shortcuts import render
-
+import datetime
 # Create your views here.
 # import django_filters
 from rest_framework import filters
 from rest_framework import viewsets
 from rest_framework import permissions
-
+from django.http import Http404
 from django.contrib.auth.models import Group
 from users.models import User
 from users.serializers import UserSerializer, GroupSerializer
+
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -37,11 +38,18 @@ from deposit.serializers import (
     Tt_SavingsListSerializer,
     SavingGroupSumarySerializer,
     SavingsTotalSerializer,
+    Tt_SavingsBatchSerializer,
+    DepositBatchSerializer,
 )
 
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as filters 
 from rest_framework.pagination import LimitOffsetPagination
+from rest_framework import status
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -149,14 +157,16 @@ class Tt_DepositViewSet(DepostBaseModelViewSet):
 
 #預金トランリスト
 class Tt_DepositListViewSet(DepositBaseReadOnlyModelViewSet):
-    queryset = Tt_Deposit.objects.all()
     serializer_class = Tt_DepositListSerializer
     filterset_class = Tt_DepositListFilter
     # ページネーション
     pagination_class = LimitOffsetPagination
+    # Sort項目限定設定
+    ordering_fields = ['insert_yyyymmdd', 'depositItem_key']
+    ordering = ['insert_yyyymmdd', 'depositItem_key']
     # permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
-        queryset = Tt_Deposit.objects.all()
+        queryset = Tt_Deposit.objects.all().order_by('-insert_yyyymmdd','depositItem_key')
         return queryset
 
 
@@ -215,4 +225,58 @@ class SavingsTotal(viewsets.ViewSet):
         queryset = Tt_Savings.objects.filter(delete_flag=False).aggregate(value=Sum(F('deposit_type')*F('deposit_value')))
         serializer = SavingsTotalSerializer(queryset)
         return Response(serializer.data)
+
+# 預金データ一括登録
+class DepositBatch(APIView):
+    #貯金データで削除フラグがFlaseデータを全て取得する
+    #savings_record = Tt_Savings.objects.filter(delete_flag=False).all()
+    #serializer_class = Tt_SavingsBatchSerializer
+
+    def get(self, request, format=None):
+        pass
+
+    def post(self, request, format=None):
+        try :
+            logger.info('DepositBatch_post::Start')
+            logger.info('request')
+            logger.info(request.data)
+            # これ要るんか？
+            batchSerializer = DepositBatchSerializer(data=request.data)
+            if batchSerializer.is_valid() :
+                logger.info('is_valid::True')
+                # 預金データ複数取得
+                # serializer = Tt_SavingsBatchSerializer(records, many=True)
+                insert_yyyymmdd = batchSerializer.data['insert_yyyymmdd']
+                memo = batchSerializer.data['memo']
+                logger.info('insert_yyyymmdd={0}'.format(insert_yyyymmdd))
+                logger.info('memo={0}'.format(memo))
+                savings_records = Tt_Savings.objects.filter(delete_flag=False).all()
+                d_now = datetime.datetime.now()
+                for savings_record in savings_records:
+                    deposit_record = {
+                        'depositItem_key' : savings_record.depositItem_key,
+                        'deposit_type' : savings_record.deposit_type,
+                        'deposit_value' : savings_record.deposit_value,
+                        'insert_yyyymmdd' : insert_yyyymmdd,
+                        'delete_flag' : False,
+                        'memo' : memo,
+                        'update_date' : d_now,
+                        'u_user_id' : request.user.uuid,
+                    }   
+                    logger.info('Create Deposit')
+                    deposit = Tt_Deposit.objects.create(**deposit_record)
+                    logger.info('Create Deposit.Save')
+                    deposit.save()
+                    return Response(batchSerializer.data, status=status.HTTP_201_CREATED)
+            else:
+                logger.info('is_valid::False')
+            return Response(batchSerializer.data, status=status.HTTP_400_BAD_REQUEST)
+        except :
+            import traceback
+            logger.error('DepositBatch::例外発生')
+            logger.error(traceback.print_exc())            
+            return Http404
+
+
+
 

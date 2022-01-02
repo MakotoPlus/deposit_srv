@@ -172,12 +172,24 @@ LOGGING = {
             'filename': './log/django.app.log',
             'formatter': 'production',
         },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': './log/django.app.debug.log',
+            'formatter': 'production',
+        },
+        'console':{
+            'level':'DEBUG',
+            'class':'logging.StreamHandler',
+            'formatter':'production'
+        },
     },
     # ロガーの設定
     'loggers': {
         # 自分で追加したアプリケーション全般のログを拾うロガー
+        # level DEBUG, INFO, WARNING, ERROR, CRITICAL
         '': {
-            'handlers': ['file'],
+            'handlers': ['file','console'],
             'level': 'INFO',
             'propagate': False,
         },

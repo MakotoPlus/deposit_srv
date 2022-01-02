@@ -84,6 +84,24 @@ class Tt_SavingsSerializer(serializers.ModelSerializer):
             'u_user',
         ]
 
+
+#貯金データ一括登録用
+class Tt_SavingsBatchSerializer(serializers.ModelSerializer):
+    # depositItem_key = Tm_DepositItemSerializer()
+    #u_user = serializers.ReadOnlyField(source='u_user.username')
+    class Meta:
+        model = Tt_Savings
+        fields = [
+            'savings_key',
+            'depositItem_key',
+            'deposit_type',
+            'deposit_value',
+            'delete_flag',
+            'update_date',
+            'u_user',
+        ]
+
+
 #預金トラン
 class Tt_DepositSerializer(serializers.ModelSerializer):
     # depositItem_key = Tm_DepositItemSerializer()
@@ -166,4 +184,9 @@ class SavingGroupSumarySerializer(serializers.Serializer):
 #預金総合計値用
 class SavingsTotalSerializer(serializers.Serializer):
     value = serializers.IntegerField()
+
+# 預金データ登録シリアライザー
+class DepositBatchSerializer(serializers.Serializer):
+    insert_yyyymmdd = serializers.CharField(required=True, max_length=10)
+    memo = serializers.CharField(max_length=1024)
 
