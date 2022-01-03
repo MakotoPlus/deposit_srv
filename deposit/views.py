@@ -159,11 +159,9 @@ class Tt_DepositViewSet(DepostBaseModelViewSet):
         serializer.save(u_user=self.request.user)
 
 class DepositDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
-    #queryset = [{
-    #    'deposit_deposititem_key' : '123',
-    #    'deposit_name' : 'test',
-    #    'sum_value' : 999
-    #}]
+    '''
+    預金日付単位サマリーView
+    '''
     records = Tm_DepositItem.objects.filter(
         deposit_deposititem_key__delete_flag=False).select_related(
         'deposit_group_key').values('depositItem_key', 'depositItem_name', 'deposit_deposititem_key__insert_yyyymm').annotate(sum_value=Sum(F('deposit_deposititem_key__deposit_value') * 
