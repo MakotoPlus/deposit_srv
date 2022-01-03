@@ -95,6 +95,7 @@ class Tt_Deposit(ModelBase):
     deposit_type = models.IntegerField(verbose_name='貯金タイプ')
     deposit_value = models.IntegerField(verbose_name='金額')
     insert_yyyymmdd = models.CharField(max_length=10, verbose_name='登録年月日')
+    insert_yyyymm = models.CharField(max_length=7, verbose_name='登録年月')
     delete_flag = models.BooleanField(verbose_name='削除フラグ')
     update_date = models.DateTimeField(verbose_name='更新日時')
     u_user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='deposit_u_user', verbose_name='更新者')

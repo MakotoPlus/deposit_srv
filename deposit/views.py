@@ -36,10 +36,13 @@ from deposit.serializers import (
     Tt_DepositListSerializer,
     DepositItemReleatedSerializer,
     Tt_SavingsListSerializer,
-    SavingGroupSumarySerializer,
+    SavingGroupSumarySerializer,    
     SavingsTotalSerializer,
     Tt_SavingsBatchSerializer,
     DepositBatchSerializer,
+    DepositTotalSerializer,
+    DepositGroupSumarySerializer,
+    DepositSumarySerializer,
 )
 
 from django_filters.rest_framework import DjangoFilterBackend
@@ -154,6 +157,46 @@ class Tt_DepositViewSet(DepostBaseModelViewSet):
     def perform_create(self, serializer):
         serializer.save(u_user=self.request.user)
 
+class DepositSumaryViewSet(DepositBaseReadOnlyModelViewSet):
+    '''
+    {'sql': 'SELECT "Tm_DepositItem"."depositItem_key", 
+    "Tm_DepositItem"."depositItem_name", "Tm_DepositItem"."deposit_group_key_id"
+    , "Tm_DepositItem"."moneyType_key_id", "Tm_DepositItem"."savings_flag"
+    , "Tm_DepositItem"."order_dsp", "Tm_DepositItem"."delete_flag", "Tm_DepositItem"."update_date"
+    , "Tm_DepositItem"."u_user_id", SUM(("Tt_Deposit"."deposit_value" * "Tt_Deposit"."deposit_type")) 
+    AS "sum_value", "Tm_DepositGroup"."deposit_group_key", "Tm_DepositGroup"."deposit_group_name"
+    , "Tm_DepositGroup"."order_dsp", "Tm_DepositGroup"."delete_flag", "Tm_DepositGroup"."update_date"
+    , "Tm_DepositGroup"."u_user_id" FROM "Tm_DepositItem" INNER JOIN "Tt_Deposit" 
+    ON ("Tm_DepositItem"."depositItem_key" = "Tt_Deposit"."depositItem_key_id") 
+    INNER JOIN "Tm_DepositGroup" ON (
+    "Tm_DepositItem"."deposit_group_key_id" = "Tm_DepositGroup"."deposit_group_key") 
+    WHERE "Tt_Deposit"."delete_flag" = 0 GROUP BY "Tm_DepositItem"."depositItem_key", 
+    "Tm_DepositItem"."depositItem_name", "Tm_DepositItem"."deposit_group_key_id", 
+    "Tm_DepositItem"."moneyType_key_id", "Tm_DepositItem"."savings_flag", 
+    "Tm_DepositItem"."order_dsp", "Tm_DepositItem"."delete_flag", "Tm_DepositItem"."update_date", 
+    "Tm_DepositItem"."u_user_id", "Tm_DepositGroup"."deposit_group_key", 
+    "Tm_DepositGroup"."deposit_group_name", "Tm_DepositGroup"."order_dsp", 
+    "Tm_DepositGroup"."delete_flag", "Tm_DepositGroup"."update_date", 
+    "Tm_DepositGroup"."u_user_id" 
+    HAVING SUM(("Tt_Deposit"."deposit_value" * "Tt_Deposit"."deposit_type")) 
+    IS NOT NULL ORDER BY "Tm_DepositItem"."order_dsp" ASC LIMIT 21', 'time': '0.001'}
+    '''
+    serializer_class = DepositSumarySerializer
+    # ページネーション
+    pagination_class = LimitOffsetPagination
+    # Sort項目限定設定
+    ordering_fields = ['deposit_group_key', 'depositItem_key']
+    ordering = ['deposit_group_key', 'depositItem_key']   
+    # permission_classes = [permissions.IsAuthenticated]
+    queryset = Tm_DepositItem.objects.filter(
+        deposit_deposititem_key__delete_flag=False).select_related(
+        'deposit_group_key').annotate(sum_value=Sum(F('deposit_deposititem_key__deposit_value') * 
+        F('deposit_deposititem_key__deposit_type'))).filter(
+        sum_value__isnull=False).order_by('deposit_group_key','depositItem_key')
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
 
 #預金トランリスト
 class Tt_DepositListViewSet(DepositBaseReadOnlyModelViewSet):
@@ -183,6 +226,39 @@ class Tt_SavingsListViewSet(DepositBaseReadOnlyModelViewSet):
     # def perform_create(self, serializer):
     #    serializer.save(u_user=self.request.user)
 
+class DepositGroupSumaryList(DepositBaseReadOnlyModelViewSet):
+    '''
+    #貯金グループサマリーリスト
+
+    削除フラグデータ除外
+
+    {'sql': 'SELECT "Tm_DepositGroup"."deposit_group_key", 
+        "Tm_DepositGroup"."deposit_group_name", "Tm_DepositGroup"."order_dsp", 
+        "Tm_DepositGroup"."delete_flag", "Tm_DepositGroup"."update_date", 
+        "Tm_DepositGroup"."u_user_id", SUM(("Tt_Deposit"."deposit_value" 
+        * "Tt_Deposit"."deposit_type")) AS "sum_value" FROM "Tm_DepositGroup" 
+        INNER JOIN "Tm_DepositItem" ON ("Tm_DepositGroup"."deposit_group_key" = 
+        "Tm_DepositItem"."deposit_group_key_id") INNER JOIN "Tt_Deposit" ON 
+        ("Tm_DepositItem"."depositItem_key" = "Tt_Deposit"."depositItem_key_id") 
+        WHERE "Tt_Deposit"."delete_flag" = 0 GROUP BY "Tm_DepositGroup".
+        "deposit_group_key", "Tm_DepositGroup"."deposit_group_name", 
+        "Tm_DepositGroup"."order_dsp", "Tm_DepositGroup"."delete_flag", 
+        "Tm_DepositGroup"."update_date", "Tm_DepositGroup"."u_user_id" 
+        HAVING SUM(("Tt_Deposit"."deposit_value" * "Tt_Deposit"."deposit_type")) 
+        IS NOT NULL ORDER BY "Tm_DepositGroup"."order_dsp" ASC LIMIT 21'
+        , 'time': '0.000'}
+    '''
+    queryset = Tm_DepositGroup.objects.filter(
+        deposititem_deposit_group_key__deposit_deposititem_key__delete_flag=False
+        ).annotate(sum_value=Sum(F('deposititem_deposit_group_key__deposit_deposititem_key__deposit_value') * 
+        F('deposititem_deposit_group_key__deposit_deposititem_key__deposit_type'))
+        ).filter(sum_value__isnull=False)
+    serializer_class = DepositGroupSumarySerializer
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+
+
 class SavingGroupSumaryList(DepositBaseReadOnlyModelViewSet):
     '''
     #貯金グループサマリーリスト
@@ -210,7 +286,7 @@ class SavingGroupSumaryList(DepositBaseReadOnlyModelViewSet):
 
 class SavingsTotal(viewsets.ViewSet):
     '''
-    預金総合計値
+    貯金総合計値
 
     削除フラグデータ除外
 
@@ -225,6 +301,19 @@ class SavingsTotal(viewsets.ViewSet):
         queryset = Tt_Savings.objects.filter(delete_flag=False).aggregate(value=Sum(F('deposit_type')*F('deposit_value')))
         serializer = SavingsTotalSerializer(queryset)
         return Response(serializer.data)
+
+class DepositTotal(viewsets.ViewSet):
+    '''
+    預金総合計値
+
+    削除データ除外
+    '''
+    def list(self, request):
+        queryset = Tt_Deposit.objects.filter(delete_flag=False).aggregate(value=Sum(F('deposit_type')*F('deposit_value')))
+        serializer = DepositTotalSerializer(queryset)
+        return Response(serializer.data)
+
+
 
 # 預金データ一括登録
 class DepositBatch(APIView):
@@ -247,6 +336,7 @@ class DepositBatch(APIView):
                 # 預金データ複数取得
                 # serializer = Tt_SavingsBatchSerializer(records, many=True)
                 insert_yyyymmdd = batchSerializer.data['insert_yyyymmdd']
+                insert_yyyymm = batchSerializer.data['insert_yyyymm']
                 memo = batchSerializer.data['memo']
                 logger.info('insert_yyyymmdd={0}'.format(insert_yyyymmdd))
                 logger.info('memo={0}'.format(memo))
@@ -258,6 +348,7 @@ class DepositBatch(APIView):
                         'deposit_type' : savings_record.deposit_type,
                         'deposit_value' : savings_record.deposit_value,
                         'insert_yyyymmdd' : insert_yyyymmdd,
+                        'insert_yyyymm' : insert_yyyymm,
                         'delete_flag' : False,
                         'memo' : memo,
                         'update_date' : d_now,
@@ -267,7 +358,7 @@ class DepositBatch(APIView):
                     deposit = Tt_Deposit.objects.create(**deposit_record)
                     logger.info('Create Deposit.Save')
                     deposit.save()
-                    return Response(batchSerializer.data, status=status.HTTP_201_CREATED)
+                return Response(batchSerializer.data, status=status.HTTP_201_CREATED)
             else:
                 logger.info('is_valid::False')
             return Response(batchSerializer.data, status=status.HTTP_400_BAD_REQUEST)

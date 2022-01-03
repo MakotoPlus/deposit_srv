@@ -116,6 +116,7 @@ class Tt_DepositSerializer(serializers.ModelSerializer):
             'deposit_type',
             'deposit_value',
             'insert_yyyymmdd',
+            'insert_yyyymm',
             'memo',
             'delete_flag',
             'update_date',
@@ -151,6 +152,7 @@ class Tt_DepositListSerializer(serializers.ModelSerializer):
             'deposit_type',
             'deposit_value',
             'insert_yyyymmdd',
+            'insert_yyyymm',
             'memo',
             'delete_flag',
             'update_date',
@@ -181,12 +183,35 @@ class SavingGroupSumarySerializer(serializers.Serializer):
     order_dsp = serializers.IntegerField()
     sum_value = serializers.IntegerField()
 
-#預金総合計値用
+#預金項目グループリスト表示用
+class DepositSumarySerializer(serializers.Serializer):
+    deposit_group_key = Tm_DepositGroupSerializer()
+    #deposit_group_name = serializers.CharField(required=False, allow_blank=True, max_length=40)
+    depositItem_key = serializers.IntegerField()
+    depositItem_name = serializers.CharField(required=False, allow_blank=True, max_length=40)
+    order_dsp = serializers.IntegerField()
+    sum_value = serializers.IntegerField()
+
+#預金グループリスト表示用
+class DepositGroupSumarySerializer(serializers.Serializer):
+    deposit_group_key = serializers.IntegerField()
+    deposit_group_name = serializers.CharField(required=False, allow_blank=True, max_length=40)
+    #deposit_group_value = serializers.IntegerField()
+    order_dsp = serializers.IntegerField()
+    sum_value = serializers.IntegerField()
+
+#貯金総合計値用
 class SavingsTotalSerializer(serializers.Serializer):
     value = serializers.IntegerField()
+
+#預金総合計値用
+class DepositTotalSerializer(serializers.Serializer):
+    value = serializers.IntegerField()
+
 
 # 預金データ登録シリアライザー
 class DepositBatchSerializer(serializers.Serializer):
     insert_yyyymmdd = serializers.CharField(required=True, max_length=10)
+    insert_yyyymm = serializers.CharField(required=True, max_length=7)
     memo = serializers.CharField(max_length=1024)
 
