@@ -18,6 +18,8 @@ class Tm_DepositGroupSerializer(serializers.ModelSerializer):
             'deposititem_deposit_group_key',
         ]
 
+    
+
 #金種
 class Tm_MoneyTypeSerializer(serializers.ModelSerializer):
     u_user = serializers.ReadOnlyField(source='u_user.username')
@@ -215,3 +217,9 @@ class DepositBatchSerializer(serializers.Serializer):
     insert_yyyymm = serializers.CharField(required=True, max_length=7)
     memo = serializers.CharField(max_length=1024)
 
+
+class DepositDateSumarySerializer(serializers.Serializer):
+    depositItem_key = serializers.IntegerField()
+    depositItem_name = serializers.CharField(required=True, max_length=10)
+    deposit_deposititem_key__insert_yyyymm = serializers.CharField(required=False, max_length=10)
+    sum_value = serializers.CharField(required=True, max_length=10)

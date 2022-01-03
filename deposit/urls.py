@@ -15,6 +15,7 @@ from .views import (
     DepositTotal,
     DepositGroupSumaryList,
     DepositSumaryViewSet,
+    DepositDateSumaryViewSet,
     )
 
 from django.urls import path
@@ -36,6 +37,7 @@ router.register(r'deposit_groupsumary_list', DepositGroupSumaryList, basename="d
 router.register(r'deposit_sumary_list', DepositSumaryViewSet, basename="deposit_sumary_list")
 router.register(r'savings_total', SavingsTotal, basename="savings_total")
 router.register(r'deposit_total', DepositTotal, basename="deposit_total")
+router.register(r'deposit_date_sumary_list', DepositDateSumaryViewSet, basename="deposit_date_sumary_list")
 
 
 urlpatterns = [

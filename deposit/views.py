@@ -43,6 +43,7 @@ from deposit.serializers import (
     DepositTotalSerializer,
     DepositGroupSumarySerializer,
     DepositSumarySerializer,
+    DepositDateSumarySerializer,
 )
 
 from django_filters.rest_framework import DjangoFilterBackend
@@ -157,8 +158,40 @@ class Tt_DepositViewSet(DepostBaseModelViewSet):
     def perform_create(self, serializer):
         serializer.save(u_user=self.request.user)
 
+class DepositDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
+    #queryset = [{
+    #    'deposit_deposititem_key' : '123',
+    #    'deposit_name' : 'test',
+    #    'sum_value' : 999
+    #}]
+    records = Tm_DepositItem.objects.filter(
+        deposit_deposititem_key__delete_flag=False).select_related(
+        'deposit_group_key').values('depositItem_key', 'depositItem_name', 'deposit_deposititem_key__insert_yyyymm').annotate(sum_value=Sum(F('deposit_deposititem_key__deposit_value') * 
+        F('deposit_deposititem_key__deposit_type'))).filter(
+        sum_value__isnull=False).order_by('depositItem_key', 'deposit_deposititem_key__insert_yyyymm')
+    # Order by句は depositItem_key, insert_yyyymmとなっているので
+    # それに従い加算処理をしてqueryset の dict として生成する    
+    queryset =[]
+    now_sum_value = 0
+    now_depositkey = None
+    for record in records:
+        if ((now_depositkey == None) or (now_depositkey != record['depositItem_key'])):
+            now_depositkey = record['depositItem_key']
+            now_sum_value = record['sum_value']
+        else :
+            now_sum_value += record['sum_value']
+            record['sum_value'] = now_sum_value
+        queryset.append(record)
+    serializer_class = DepositDateSumarySerializer
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+
+
 class DepositSumaryViewSet(DepositBaseReadOnlyModelViewSet):
     '''
+    預金グループ単位サマリー
+
     {'sql': 'SELECT "Tm_DepositItem"."depositItem_key", 
     "Tm_DepositItem"."depositItem_name", "Tm_DepositItem"."deposit_group_key_id"
     , "Tm_DepositItem"."moneyType_key_id", "Tm_DepositItem"."savings_flag"
@@ -228,7 +261,7 @@ class Tt_SavingsListViewSet(DepositBaseReadOnlyModelViewSet):
 
 class DepositGroupSumaryList(DepositBaseReadOnlyModelViewSet):
     '''
-    #貯金グループサマリーリスト
+    #預金グループサマリーリスト
 
     削除フラグデータ除外
 
