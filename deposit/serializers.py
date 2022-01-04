@@ -221,5 +221,6 @@ class DepositBatchSerializer(serializers.Serializer):
 class DepositDateSumarySerializer(serializers.Serializer):
     depositItem_key = serializers.IntegerField()
     depositItem_name = serializers.CharField(required=True, max_length=10)
-    deposit_deposititem_key__insert_yyyymm = serializers.CharField(required=False, max_length=10)
-    sum_value = serializers.CharField(required=True, max_length=10)
+    insert_yyyymm = serializers.CharField(required=False, max_length=10)
+    #value = serializers.CharField(required=True, max_length=10)
+    value = serializers.IntegerField()
