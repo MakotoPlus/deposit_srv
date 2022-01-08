@@ -44,6 +44,7 @@ from deposit.serializers import (
     DepositGroupSumarySerializer,
     DepositSumarySerializer,
     DepositDateSumarySerializer,
+    DepositItemDateSumarySerializer,
 )
 
 from django_filters.rest_framework import DjangoFilterBackend
@@ -173,9 +174,9 @@ class Tt_DepositViewSet(DepostBaseModelViewSet):
     #    }
 '''
 
-class DepositDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
+class DepositItemDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
     '''
-    預金日付単位サマリーView
+    預金項目・日付単位サマリーView
     '''
     records = Tm_DepositItem.objects.filter(
         deposit_deposititem_key__delete_flag=False).select_related(
@@ -197,6 +198,30 @@ class DepositDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
         else :
             now_sum_value += record['value']
             record['value'] = now_sum_value
+        queryset.append(record)
+
+    # Filterはモデルが無いと実装厳しそうなので諦める
+    # filterset_class = DepositSumaryViewFilter
+    # filter_backends = (filters.DjangoFilterBackend,)
+    # filterset_fields = ['depositItem_key', 'insert_yyyymm']
+    serializer_class = DepositItemDateSumarySerializer
+
+class DepositDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
+    '''
+    預金日付単位サマリーView
+    '''
+    records = Tt_Deposit.objects.values('insert_yyyymm').annotate(value=
+    Sum(F('deposit_value') * F('deposit_type'))).filter(
+    value__isnull=False).order_by('insert_yyyymm')
+
+    # Order by句は insert_yyyymmとなっているので
+    # それに従い加算処理をしてqueryset の dict として生成する    
+    queryset =[]
+    now_sum_value = 0
+    now_depositkey = None
+    for record in records:
+        now_sum_value += record['value']
+        record['value'] = now_sum_value
         queryset.append(record)
 
     # Filterはモデルが無いと実装厳しそうなので諦める

@@ -217,10 +217,15 @@ class DepositBatchSerializer(serializers.Serializer):
     insert_yyyymm = serializers.CharField(required=True, max_length=7)
     memo = serializers.CharField(max_length=1024)
 
-#預金日付単位サマリーView
-class DepositDateSumarySerializer(serializers.Serializer):
+#預金項目・日付単位サマリーView
+class DepositItemDateSumarySerializer(serializers.Serializer):
     depositItem_key = serializers.IntegerField()
     depositItem_name = serializers.CharField(required=True, max_length=10)
     insert_yyyymm = serializers.CharField(required=False, max_length=10)
     #value = serializers.CharField(required=True, max_length=10)
+    value = serializers.IntegerField()
+
+#預金日付単位サマリーView
+class DepositDateSumarySerializer(serializers.Serializer):
+    insert_yyyymm = serializers.CharField(required=False, max_length=10)
     value = serializers.IntegerField()
