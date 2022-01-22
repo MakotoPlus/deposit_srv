@@ -153,6 +153,7 @@ DATE_INPUT_FORMATS = ('%Y/%m/%d','%Y-%m-%d')
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
 LOGGING = {
     'version': 1,

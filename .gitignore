@@ -11,3 +11,5 @@ __init__.py
 db.sqlite.20220107
 env/
 deposit_srv/settings_master.py
+static/
+

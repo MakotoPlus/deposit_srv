@@ -178,57 +178,69 @@ class DepositItemDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
     '''
     預金項目・日付単位サマリーView
     '''
-    records = Tm_DepositItem.objects.filter(
-        deposit_deposititem_key__delete_flag=False).select_related(
-        'deposit_group_key').values('depositItem_key', 'depositItem_name', 
-        insert_yyyymm=F('deposit_deposititem_key__insert_yyyymm')
-        ).annotate(value=Sum(F('deposit_deposititem_key__deposit_value') * 
-        F('deposit_deposititem_key__deposit_type'))).filter(
-        value__isnull=False).order_by('depositItem_key', 'deposit_deposititem_key__insert_yyyymm')
-
-    # Order by句は depositItem_key, insert_yyyymmとなっているので
-    # それに従い加算処理をしてqueryset の dict として生成する    
-    queryset =[]
-    now_sum_value = 0
-    now_depositkey = None
-    for record in records:
-        if ((now_depositkey == None) or (now_depositkey != record['depositItem_key'])):
-            now_depositkey = record['depositItem_key']
-            now_sum_value = record['value']
-        else :
-            now_sum_value += record['value']
-            record['value'] = now_sum_value
-        queryset.append(record)
-
     # Filterはモデルが無いと実装厳しそうなので諦める
     # filterset_class = DepositSumaryViewFilter
     # filter_backends = (filters.DjangoFilterBackend,)
     # filterset_fields = ['depositItem_key', 'insert_yyyymm']
     serializer_class = DepositItemDateSumarySerializer
 
+    def get_queryset(self):
+        records = Tm_DepositItem.objects.filter(
+            deposit_deposititem_key__delete_flag=False).select_related(
+            'deposit_group_key').values('depositItem_key', 'depositItem_name', 
+            insert_yyyymm=F('deposit_deposititem_key__insert_yyyymm')
+            ).annotate(value=Sum(F('deposit_deposititem_key__deposit_value') * 
+            F('deposit_deposititem_key__deposit_type'))).filter(
+            value__isnull=False).order_by('depositItem_key', 'deposit_deposititem_key__insert_yyyymm')
+
+        # Order by句は depositItem_key, insert_yyyymmとなっているので
+        # それに従い加算処理をしてqueryset の dict として生成する    
+        queryset =[]
+        now_sum_value = 0
+        now_depositkey = None
+        for record in records:
+            if ((now_depositkey == None) or (now_depositkey != record['depositItem_key'])):
+                now_depositkey = record['depositItem_key']
+                now_sum_value = record['value']
+            else :
+                now_sum_value += record['value']
+                record['value'] = now_sum_value
+            queryset.append(record)
+        self.queryset = queryset
+        return self.queryset
+
+
+
 class DepositDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
     '''
     預金日付単位サマリーView
-    '''
     records = Tt_Deposit.objects.values('insert_yyyymm').annotate(value=
     Sum(F('deposit_value') * F('deposit_type'))).filter(
     value__isnull=False).order_by('insert_yyyymm')
-
-    # Order by句は insert_yyyymmとなっているので
-    # それに従い加算処理をしてqueryset の dict として生成する    
-    queryset =[]
-    now_sum_value = 0
-    now_depositkey = None
-    for record in records:
-        now_sum_value += record['value']
-        record['value'] = now_sum_value
-        queryset.append(record)
-
+    '''
     # Filterはモデルが無いと実装厳しそうなので諦める
     # filterset_class = DepositSumaryViewFilter
     # filter_backends = (filters.DjangoFilterBackend,)
     # filterset_fields = ['depositItem_key', 'insert_yyyymm']
     serializer_class = DepositDateSumarySerializer
+
+    # Order by句は insert_yyyymmとなっているので
+    # それに従い加算処理をしてqueryset の dict として生成する    
+    # queryset =[]
+    def get_queryset(self):
+        queryset =[]
+        now_sum_value = 0
+        now_depositkey = None
+        records = Tt_Deposit.objects.values('insert_yyyymm').annotate(value=
+        Sum(F('deposit_value') * F('deposit_type'))).filter(
+        value__isnull=False).order_by('insert_yyyymm')
+        for record in records:
+            now_sum_value += record['value']
+            record['value'] = now_sum_value
+            queryset.append(record)
+        self.queryset = queryset
+        return queryset
+        #return super().get_queryset()
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
@@ -271,12 +283,16 @@ class DepositSumaryViewSet(DepositBaseReadOnlyModelViewSet):
     ordering_fields = ['deposit_group_key', 'depositItem_key']
     ordering = ['deposit_group_key', 'depositItem_key']   
     # permission_classes = [permissions.IsAuthenticated]
-    queryset = Tm_DepositItem.objects.filter(
-        deposit_deposititem_key__delete_flag=False).select_related(
-        'deposit_group_key').annotate(sum_value=Sum(F('deposit_deposititem_key__deposit_value') * 
-        F('deposit_deposititem_key__deposit_type'))).filter(
-        sum_value__isnull=False).order_by('deposit_group_key','depositItem_key')
 
+    def get_queryset(self):
+        queryset = Tm_DepositItem.objects.filter(
+            deposit_deposititem_key__delete_flag=False).select_related(
+            'deposit_group_key').annotate(sum_value=Sum(F('deposit_deposititem_key__deposit_value') * 
+            F('deposit_deposititem_key__deposit_type'))).filter(
+            sum_value__isnull=False).order_by('deposit_group_key','depositItem_key')
+        self.queryset = queryset
+        return self.queryset
+  
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
@@ -331,12 +347,17 @@ class DepositGroupSumaryList(DepositBaseReadOnlyModelViewSet):
         IS NOT NULL ORDER BY "Tm_DepositGroup"."order_dsp" ASC LIMIT 21'
         , 'time': '0.000'}
     '''
-    queryset = Tm_DepositGroup.objects.filter(
-        deposititem_deposit_group_key__deposit_deposititem_key__delete_flag=False
-        ).annotate(sum_value=Sum(F('deposititem_deposit_group_key__deposit_deposititem_key__deposit_value') * 
-        F('deposititem_deposit_group_key__deposit_deposititem_key__deposit_type'))
-        ).filter(sum_value__isnull=False)
     serializer_class = DepositGroupSumarySerializer
+
+    def get_queryset(self):
+        queryset = Tm_DepositGroup.objects.filter(
+            deposititem_deposit_group_key__deposit_deposititem_key__delete_flag=False
+            ).annotate(sum_value=Sum(F('deposititem_deposit_group_key__deposit_deposititem_key__deposit_value') * 
+            F('deposititem_deposit_group_key__deposit_deposititem_key__deposit_type'))
+            ).filter(sum_value__isnull=False)
+        self.queryset = queryset
+        return self.queryset
+
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
@@ -356,14 +377,16 @@ class SavingGroupSumaryList(DepositBaseReadOnlyModelViewSet):
     #    * F('deposititem_deposit_group_key__savings_deposititem_key__deposit_type'))).filter(
     #    sum_value__isnull=False
     #)
-    queryset = Tm_DepositGroup.objects.filter(
-        deposititem_deposit_group_key__savings_deposititem_key__delete_flag=False
-        ).annotate(sum_value=Sum(F('deposititem_deposit_group_key__savings_deposititem_key__deposit_value') * 
-        F('deposititem_deposit_group_key__savings_deposititem_key__deposit_type'))
-        ).filter(sum_value__isnull=False)
-
     serializer_class = SavingGroupSumarySerializer
 
+    def get_queryset(self):
+        self.queryset = Tm_DepositGroup.objects.filter(
+            deposititem_deposit_group_key__savings_deposititem_key__delete_flag=False
+            ).annotate(sum_value=Sum(F('deposititem_deposit_group_key__savings_deposititem_key__deposit_value') * 
+            F('deposititem_deposit_group_key__savings_deposititem_key__deposit_type'))
+            ).filter(sum_value__isnull=False)
+        return self.queryset
+  
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
