@@ -1,5 +1,9 @@
 from django.shortcuts import render
 import datetime
+from datetime import datetime as dt
+from dateutil.relativedelta import relativedelta
+from pyparsing import Or
+
 # Create your views here.
 # import django_filters
 from rest_framework import filters
@@ -185,29 +189,76 @@ class DepositItemDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
     serializer_class = DepositItemDateSumarySerializer
 
     def get_queryset(self):
+        # 1. 全ての預金項目を取得する
+        # 2. 全ての預金トランを年月単位のデータを取得する
+        # 3. 月毎に加算して行く
+
+        #-------------------------------------------------
+        # 1. 全ての預金項目を取得する
+        #-------------------------------------------------
+        depositItem_all_records = Tm_DepositItem.objects.all().filter(delete_flag=False)
+
+        #-------------------------------------------------
+        # 2. 全ての預金トランを年月単位のデータを取得する
+        #-------------------------------------------------
         records = Tm_DepositItem.objects.filter(
             deposit_deposititem_key__delete_flag=False).select_related(
             'deposit_group_key').values('depositItem_key', 'depositItem_name', 
             insert_yyyymm=F('deposit_deposititem_key__insert_yyyymm')
             ).annotate(value=Sum(F('deposit_deposititem_key__deposit_value') * 
             F('deposit_deposititem_key__deposit_type'))).filter(
-            value__isnull=False).order_by('depositItem_key', 'deposit_deposititem_key__insert_yyyymm')
+            value__isnull=False).order_by('depositItem_key','deposit_deposititem_key__insert_yyyymm')
 
         # Order by句は depositItem_key, insert_yyyymmとなっているので
-        # それに従い加算処理をしてqueryset の dict として生成する    
-        queryset =[]
+        # それに従い加算処理をしてqueryset の dict として生成する
+
+        #-------------------------------------------------
+        # 3. 月毎に加算して行く
+        #-------------------------------------------------
+        results = []
+        # 開始日付と最大の日付を取得する
+        str_start_yyyymm = None
+        for record in records:
+            if (str_start_yyyymm == None) or (str_start_yyyymm > record['insert_yyyymm']):
+                str_start_yyyymm = record['insert_yyyymm']
+        # 開始日の日付取得
+        start_date = dt.strptime(str_start_yyyymm + '/01', '%Y/%m/%d')
         now_sum_value = 0
         now_depositkey = None
         for record in records:
             if ((now_depositkey == None) or (now_depositkey != record['depositItem_key'])):
                 now_depositkey = record['depositItem_key']
-                now_sum_value = record['value']
-            else :
-                now_sum_value += record['value']
-                record['value'] = now_sum_value
-            queryset.append(record)
-        self.queryset = queryset
-        return self.queryset
+                now_depositItem_name = record['depositItem_name']
+                now_sum_value = 0
+                now_date = start_date
+            #else :
+            #    now_date = insert_yyyymm_date + relativedelta(months=1)
+            #    now_sum_value += record['value']
+            #-----------------------------------------------------------------
+            # 現在の追加レコードの日付が now_dateと差があった場合は、差の期間は前の金額と同じデータを作成する
+            #-----------------------------------------------------------------
+            insert_yyyymm_date = dt.strptime(record['insert_yyyymm'] + '/01', '%Y/%m/%d')
+            while (now_date < insert_yyyymm_date) :
+                d = now_date.strftime('%Y/%m')
+                results.append({
+                    'depositItem_key' : now_depositkey,
+                    'depositItem_name': now_depositItem_name,
+                    'insert_yyyymm': d,
+                    'value' : now_sum_value
+                });
+                now_date = now_date + relativedelta(months=1)
+            # 金額加算
+            now_sum_value += record['value']
+            results.append({
+                'depositItem_key' : now_depositkey,
+                'depositItem_name': now_depositItem_name,
+                'insert_yyyymm': record['insert_yyyymm'],
+                'value' : now_sum_value
+            });
+            # 次のために年月加算
+            now_date = insert_yyyymm_date + relativedelta(months=1)
+        return results
+
 
 
 
