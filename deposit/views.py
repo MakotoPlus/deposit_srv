@@ -189,17 +189,28 @@ class DepositItemDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
     serializer_class = DepositItemDateSumarySerializer
 
     def get_queryset(self):
-        # 1. 全ての預金項目を取得する
+        # 処理概要
+        # 1. パラメータ取得
         # 2. 全ての預金トランを年月単位のデータを取得する
         # 3. 月毎に加算して行く
-
+        
         #-------------------------------------------------
-        # 1. 全ての預金項目を取得する
+        # 1. パラメータ取得
         #-------------------------------------------------
-        depositItem_all_records = Tm_DepositItem.objects.all().filter(delete_flag=False)
+        depositItem_keys = None
+        insert_yyyymm_from = None
+        insert_yyyymm_to = None
+        if 'depositItem_key' in self.request.GET:
+            depositItem_keys = self.request.GET.getlist('depositItem_key', None)
+        if 'insert_yyyymm_from' in self.request.GET:
+            insert_yyyymm_from = self.request.GET.get('insert_yyyymm_from')
+        if 'insert_yyyymm_to' in self.request.GET:
+            insert_yyyymm_to = self.request.GET.get('insert_yyyymm_to')
 
         #-------------------------------------------------
         # 2. 全ての預金トランを年月単位のデータを取得する
+        # 
+        #    Filterが利用できないのでここで絞込条件の設定を行う
         #-------------------------------------------------
         records = Tm_DepositItem.objects.filter(
             deposit_deposititem_key__delete_flag=False).select_related(
@@ -208,6 +219,14 @@ class DepositItemDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
             ).annotate(value=Sum(F('deposit_deposititem_key__deposit_value') * 
             F('deposit_deposititem_key__deposit_type'))).filter(
             value__isnull=False).order_by('depositItem_key','deposit_deposititem_key__insert_yyyymm')
+
+        # 項目キー、年月が指定されていた場合更に絞込み
+        if depositItem_keys :
+            records = records.filter(depositItem_key__in=depositItem_keys)
+        if insert_yyyymm_from :
+            records = records.filter(insert_yyyymm__gte=insert_yyyymm_from)
+        if insert_yyyymm_to :
+            records = records.filter(insert_yyyymm__lte=insert_yyyymm_to)
 
         # Order by句は depositItem_key, insert_yyyymmとなっているので
         # それに従い加算処理をしてqueryset の dict として生成する
@@ -218,6 +237,8 @@ class DepositItemDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
         results = []
         # 開始日付と最大の日付を取得する
         str_start_yyyymm = None
+        if insert_yyyymm_from :
+            str_start_yyyymm = insert_yyyymm_from
         for record in records:
             if (str_start_yyyymm == None) or (str_start_yyyymm > record['insert_yyyymm']):
                 str_start_yyyymm = record['insert_yyyymm']
@@ -231,14 +252,13 @@ class DepositItemDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
                 now_depositItem_name = record['depositItem_name']
                 now_sum_value = 0
                 now_date = start_date
-            #else :
-            #    now_date = insert_yyyymm_date + relativedelta(months=1)
-            #    now_sum_value += record['value']
             #-----------------------------------------------------------------
             # 現在の追加レコードの日付が now_dateと差があった場合は、差の期間は前の金額と同じデータを作成する
+            # あーめんどう
             #-----------------------------------------------------------------
             insert_yyyymm_date = dt.strptime(record['insert_yyyymm'] + '/01', '%Y/%m/%d')
             while (now_date < insert_yyyymm_date) :
+                # 年月の差分に同じ値を設定処理
                 d = now_date.strftime('%Y/%m')
                 results.append({
                     'depositItem_key' : now_depositkey,
