@@ -223,8 +223,10 @@ class DepositItemDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
         # 項目キー、年月が指定されていた場合更に絞込み
         if depositItem_keys :
             records = records.filter(depositItem_key__in=depositItem_keys)
-        if insert_yyyymm_from :
-            records = records.filter(insert_yyyymm__gte=insert_yyyymm_from)
+        #
+        # FROM は結果的に加算処理が必要なため絞込条件は後程実施する
+        #if insert_yyyymm_from :
+        #    records = records.filter(insert_yyyymm__gte=insert_yyyymm_from)
         if insert_yyyymm_to :
             records = records.filter(insert_yyyymm__lte=insert_yyyymm_to)
 
@@ -237,8 +239,6 @@ class DepositItemDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
         results = []
         # 開始日付と最大の日付を取得する
         str_start_yyyymm = None
-        if insert_yyyymm_from :
-            str_start_yyyymm = insert_yyyymm_from
         for record in records:
             if (str_start_yyyymm == None) or (str_start_yyyymm > record['insert_yyyymm']):
                 str_start_yyyymm = record['insert_yyyymm']
@@ -277,6 +277,13 @@ class DepositItemDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
             });
             # 次のために年月加算
             now_date = insert_yyyymm_date + relativedelta(months=1)
+        
+        if insert_yyyymm_from :
+            result_filter = [];
+            for result in results:
+                if result['insert_yyyymm'] >= insert_yyyymm_from:
+                    result_filter.append(result)
+            results = result_filter;
         return results
 
 
