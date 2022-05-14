@@ -19,6 +19,7 @@ class Tm_DepositGroup(ModelBase):
 
     deposit_group_key = models.AutoField(primary_key=True, verbose_name='預金項目グループID')
     deposit_group_name = models.CharField(max_length=40, verbose_name='預金項目グループ名')
+    deposit_flag = models.BooleanField(verbose_name='預金データフラグ', default=True)
     order_dsp = models.IntegerField(verbose_name='表示順序')
     delete_flag = models.BooleanField(verbose_name='削除フラグ')
     update_date = models.DateTimeField(verbose_name='更新日時')
@@ -58,6 +59,7 @@ class Tm_DepositItem(ModelBase):
     depositItem_key = models.AutoField(primary_key=True, verbose_name='預金項目ID')
     depositItem_name = models.CharField(max_length=40, verbose_name='預金項目名')
     deposit_group_key = models.ForeignKey(Tm_DepositGroup, on_delete=models.PROTECT, related_name='deposititem_deposit_group_key', verbose_name='預金項目グループID')
+    deposit_flag = models.BooleanField(verbose_name='預金データフラグ', default=True)
     moneyType_key = models.ForeignKey(Tm_MoneyType, on_delete=models.PROTECT, related_name='deposititem_moneytype_key', verbose_name='金種ID')
     savings_flag = models.BooleanField(verbose_name='積立項目フラグ')
     order_dsp = models.IntegerField(verbose_name='表示順序')
@@ -100,3 +102,22 @@ class Tt_Deposit(ModelBase):
     update_date = models.DateTimeField(verbose_name='更新日時')
     u_user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='deposit_u_user', verbose_name='更新者')
     memo = models.CharField(null=True, max_length=1024, verbose_name='補足')
+
+#資産トラン
+class Tt_Assets(ModelBase):
+    class Meta:
+        db_table = 'Tt_Assets'
+        verbose_name = '資産トラン(Tt_Assets)'
+        verbose_name_plural = '資産トラン(Tt_Assets)'
+
+    deposit_key = models.AutoField(primary_key=True, verbose_name='預金ID')
+    depositItem_key = models.ForeignKey(Tm_DepositItem, on_delete=models.PROTECT, related_name='assets_deposititem_key', verbose_name='預金項目ID')
+    deposit_type = models.IntegerField(verbose_name='貯金タイプ')
+    deposit_value = models.IntegerField(verbose_name='金額')
+    insert_yyyymmdd = models.CharField(max_length=10, verbose_name='登録年月日')
+    insert_yyyymm = models.CharField(max_length=7, verbose_name='登録年月')
+    delete_flag = models.BooleanField(verbose_name='削除フラグ')
+    update_date = models.DateTimeField(verbose_name='更新日時')
+    u_user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='assets_u_user', verbose_name='更新者')
+    memo = models.CharField(null=True, max_length=1024, verbose_name='補足')
+

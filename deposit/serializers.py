@@ -11,6 +11,7 @@ class Tm_DepositGroupSerializer(serializers.ModelSerializer):
         fields = [
             'deposit_group_key',
             'deposit_group_name',
+            'deposit_flag',
             'order_dsp',
             'delete_flag',
             'update_date',
@@ -61,6 +62,7 @@ class Tm_DepositItemListSerializer(serializers.ModelSerializer):
         fields = [
             'depositItem_key',
             'depositItem_name',
+            'deposit_flag',
             'deposit_group_key',
             'moneyType_key',
             'savings_flag',

@@ -128,9 +128,16 @@ class Tm_DepositItemViewSet(DepostBaseModelViewSet):
     def perform_create(self, serializer):
         serializer.save(u_user=self.request.user)
 
+
+#預金項目リストボックス用フィルタークラス
+class Tm_DepositItemListFilter(filters.FilterSet):
+    delete_flag = filters.BooleanFilter(field_name="delete_flag")
+    deposit_flag = filters.BooleanFilter(field_name="deposit_flag")
+
 #預金項目リストボックス用
 class Tm_DepositItemListViewSet(DepostBaseModelViewSet):
     queryset = Tm_DepositItem.objects.all()
+    filterset_class = Tm_DepositItemListFilter
     serializer_class = Tm_DepositItemListSerializer
 
 
