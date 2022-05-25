@@ -36,5 +36,6 @@ class AdminTm_Tt_Deposit(admin.ModelAdmin):
 @admin.register(models.Tt_Assets)
 class AdminTm_Tt_Assets(admin.ModelAdmin):
     fields = ('depositItem_key', 'deposit_type', 'deposit_value', 'insert_yyyymmdd', 'insert_yyyymm', 'delete_flag', 'update_date', 'u_user', 'memo', )
-    list_display = ('deposit_key', 'depositItem_key', 'deposit_type', 'deposit_value', 'insert_yyyymmdd', 'insert_yyyymm', 'delete_flag', 'update_date', 'u_user', 'memo', )
-    ordering = ('deposit_key', )
+    list_display = ('assets_key', 'depositItem_key', 'deposit_type', 'deposit_value', 'insert_yyyymmdd', 'insert_yyyymm', 'delete_flag', 'update_date', 'u_user', 'memo', )
+    ordering = ('assets_key', )
+

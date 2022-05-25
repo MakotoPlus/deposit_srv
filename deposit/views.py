@@ -9,6 +9,7 @@ from pyparsing import Or
 from rest_framework import filters
 from rest_framework import viewsets
 from rest_framework import permissions
+from django.core.exceptions import ValidationError
 from django.http import Http404
 from django.contrib.auth.models import Group
 from users.models import User
@@ -28,7 +29,8 @@ from deposit.models import (
     Tm_MoneyType,
     Tm_DepositItem,
     Tt_Savings,
-    Tt_Deposit
+    Tt_Deposit,
+    Tt_Assets
 )
 from deposit.serializers import (
     Tm_DepositGroupSerializer,
@@ -49,7 +51,14 @@ from deposit.serializers import (
     DepositSumarySerializer,
     DepositDateSumarySerializer,
     DepositItemDateSumarySerializer,
+    Tt_AssetsSerializer,
+    Tt_AssetsListSerializer,
+    Tt_AssetsPandasSerializer,
+    Tt_AssetsUpdateSerializer,
 )
+
+from rest_pandas import PandasViewSet, PandasUnstackedSerializer
+#from django_pivot.pivot import pivot
 
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as filters 
@@ -170,6 +179,77 @@ class Tt_DepositViewSet(DepostBaseModelViewSet):
     def perform_create(self, serializer):
         serializer.save(u_user=self.request.user)
 
+#資産トランフィルタークラス
+class Tt_AssetsListFilter(filters.FilterSet):
+    delete_flag = filters.BooleanFilter(field_name="delete_flag")
+    class Meta:
+        model = Tt_Assets
+        fields = {
+            'insert_yyyymm' : ['lte','gte']
+        }
+
+#資産トラン
+class Tt_AssetsViewSet(DepostBaseModelViewSet):
+    queryset = Tt_Assets.objects.all()
+    serializer_class = Tt_AssetsSerializer
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = Tt_AssetsListFilter
+    def perform_create(self, serializer):
+        serializer.save(u_user=self.request.user)
+
+#
+#資産トラン一括登録
+#
+# https://docs.djangoproject.com/en/4.0/ref/models/querysets/#bulk-create
+# https://qiita.com/Utena-lotus/items/c7bde7f663cfc4aabff1
+class Tt_AssetsBulkViewSet(generics.CreateAPIView):
+    serializer_class = Tt_AssetsSerializer
+
+    def get_serializer(self, *args, **kwargs):
+        if isinstance(kwargs.get("data", {}), list):
+            #
+            # 新規作成のため既に同じ年月データが１件でも存在した場合はNoneを返すエラーしてしまう
+            # Serialize.is_Validだとー出来そうにないのでここで記述
+            kwargs["many"] = True
+            records = kwargs.get("data")
+            insert_yyyymm = records[0]['insert_yyyymm']
+            logger.debug( f'insert_yyyymm=[{insert_yyyymm}]')
+            assets_dataset_count = Tt_Assets.objects.filter(insert_yyyymm=insert_yyyymm).count()
+            logger.debug( f'assets_dataset_count=[{assets_dataset_count}]')
+            if assets_dataset_count > 0 :
+                logger.info( f'assets_dataset_count=[{assets_dataset_count}]')
+                logger.error( f'既に存在する年月({insert_yyyymm})の資産データを登録しようとしたため処理をエラーにします')
+                return None
+            # u_user の値を設定する
+            for record in records:
+                record["u_user"] = self.request.user.uuid
+        return super(Tt_AssetsBulkViewSet, self).get_serializer(*args, **kwargs)
+
+#
+#
+# 資産トランのPivotデータ取得
+#
+# insert_yyyymm_from, insert_yyyymm_toが設定されている場合は絞込も行う
+#
+class AssetsPandasViewSet(PandasViewSet):
+    queryset = Tt_Assets.objects.all().order_by('insert_yyyymm').reverse()
+    serializer_class = Tt_AssetsPandasSerializer
+    pandas_serializer_class = PandasUnstackedSerializer
+
+    def get_queryset(self):
+        #return super().get_queryset()
+        insert_yyyymm_from = None
+        insert_yyyymm_to = None
+        if 'insert_yyyymm_from' in self.request.GET:
+            insert_yyyymm_from = self.request.GET.get('insert_yyyymm_from')
+        if 'insert_yyyymm_to' in self.request.GET:
+            insert_yyyymm_to = self.request.GET.get('insert_yyyymm_to')
+        records = Tt_Assets.objects.all().order_by('insert_yyyymm').reverse()
+        if insert_yyyymm_from :
+            records = records.filter(insert_yyyymm__gte=insert_yyyymm_from)
+        if insert_yyyymm_to :
+            records = records.filter(insert_yyyymm__lte=insert_yyyymm_to)
+        return records;
 '''
 # Filterはモデルが無いと実装厳しそうなので諦める
 # 預金グループ単位サマリーフィルタークラス
@@ -517,20 +597,20 @@ class DepositBatch(APIView):
 
     def post(self, request, format=None):
         try :
-            logger.info('DepositBatch_post::Start')
-            logger.info('request')
-            logger.info(request.data)
+            logger.debug('DepositBatch_post::Start')
+            logger.debug('request')
+            logger.debug(request.data)
             # これ要るんか？
             batchSerializer = DepositBatchSerializer(data=request.data)
             if batchSerializer.is_valid() :
-                logger.info('is_valid::True')
+                logger.debug('is_valid::True')
                 # 預金データ複数取得
                 # serializer = Tt_SavingsBatchSerializer(records, many=True)
                 insert_yyyymmdd = batchSerializer.data['insert_yyyymmdd']
                 insert_yyyymm = batchSerializer.data['insert_yyyymm']
                 memo = batchSerializer.data['memo']
-                logger.info('insert_yyyymmdd={0}'.format(insert_yyyymmdd))
-                logger.info('memo={0}'.format(memo))
+                logger.debug('insert_yyyymmdd={0}'.format(insert_yyyymmdd))
+                logger.debug('memo={0}'.format(memo))
                 savings_records = Tt_Savings.objects.filter(delete_flag=False).all()
                 d_now = datetime.datetime.now()
                 for savings_record in savings_records:
@@ -545,13 +625,13 @@ class DepositBatch(APIView):
                         'update_date' : d_now,
                         'u_user_id' : request.user.uuid,
                     }   
-                    logger.info('Create Deposit')
+                    logger.debug('Create Deposit')
                     deposit = Tt_Deposit.objects.create(**deposit_record)
-                    logger.info('Create Deposit.Save')
+                    logger.debug('Create Deposit.Save')
                     deposit.save()
                 return Response(batchSerializer.data, status=status.HTTP_201_CREATED)
             else:
-                logger.info('is_valid::False')
+                logger.debug('is_valid::False')
             return Response(batchSerializer.data, status=status.HTTP_400_BAD_REQUEST)
         except :
             import traceback
@@ -561,4 +641,83 @@ class DepositBatch(APIView):
 
 
 
+#
+# 資産トラン一括更新処理
+class Tt_AssetsBulkUpdatesViewSet(generics.UpdateAPIView):
 
+    serializer_class = Tt_AssetsUpdateSerializer
+    lookup_field = "assets_key"
+    records = []
+    def get_queryset(self, request_data):
+        #return Tt_Assets.objects.all()
+        logger.info('get_serializer')
+        logger.info('data')
+        logger.info(request_data)
+        #return Tt_Assets.objects.filter(insert_yyyymm=insert_yyyymm)
+        return Tt_Assets.objects.filter(insert_yyyymm=request_data[0]['insert_yyyymm'])
+
+    def get_serializer(self, *args, **kwargs):
+        logger.info( 'get_serializer')
+        logger.info('data')
+        logger.info(kwargs.get("data"))
+        if isinstance(kwargs.get("data", {}), list):
+            logger.info( 'isinstance')
+            kwargs["many"] = True
+            #
+            # Clientからのデータは、PK値が設定されてこないのでここで設定する
+            # self.records = kwargs.get("data")
+            #logger.info('record')
+            #logger.info(self.records)
+            for record in self.records:
+                dataSet = Tt_Assets.objects.filter(
+                    insert_yyyymm=record['insert_yyyymm']
+                ).filter(
+                    depositItem_key=record['depositItem_key']
+                )
+                record['assets_key'] = dataSet[0].assets_key
+                record["u_user"] = self.request.user.uuid
+                logger.info('record')
+                logger.info(record)
+        return super(Tt_AssetsBulkUpdatesViewSet, self).get_serializer(*args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        # ids = self.validate_ids(request.data)
+        # logger.info('request.data')
+        # logger.info(request.data)
+        logger.info('request.records')
+        logger.info(self.records)
+
+        self.records = request.data
+        instances = self.get_queryset(request.data)
+        serializer = self.get_serializer(
+            instances, data=self.records, partial=False, many=True
+        )
+        serializer.is_valid(raise_exception=True)
+
+        self.perform_update(serializer)
+
+        return Response(serializer.data)
+        
+
+    def validate_ids(data, field="id", unique=True):
+        if isinstance(data, list):
+            id_list = [int(x[field]) for x in data]
+            if unique and len(id_list) != len(set(id_list)):
+                raise ValidationError("Multiple updates to a single {} found".format(field))
+            return id_list
+        return [data]
+
+    ''''
+    def get_queryset(self):
+        # 更新対象のデータを全て抽出するデータセットを返す
+        return Tt_Assets.objects.filter(
+            insert_yyyymm=self.kwargs['insert_yyyymm'])
+
+    def get(self, request, format=None):
+        pass
+
+    def post(self, request, format=None):
+        logger.debug('Tt_AssetsBulkUpdatesViewSet_post::Start')
+        logger.debug('request')
+        logger.debug(request.data)
+    '''

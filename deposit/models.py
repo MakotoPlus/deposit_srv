@@ -110,7 +110,7 @@ class Tt_Assets(ModelBase):
         verbose_name = '資産トラン(Tt_Assets)'
         verbose_name_plural = '資産トラン(Tt_Assets)'
 
-    deposit_key = models.AutoField(primary_key=True, verbose_name='預金ID')
+    assets_key = models.AutoField(primary_key=True, verbose_name='資産ID')
     depositItem_key = models.ForeignKey(Tm_DepositItem, on_delete=models.PROTECT, related_name='assets_deposititem_key', verbose_name='預金項目ID')
     deposit_type = models.IntegerField(verbose_name='貯金タイプ')
     deposit_value = models.IntegerField(verbose_name='金額')
