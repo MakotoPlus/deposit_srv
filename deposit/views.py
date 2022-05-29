@@ -1,3 +1,4 @@
+
 from django.shortcuts import render
 import datetime
 from datetime import datetime as dt
@@ -55,6 +56,7 @@ from deposit.serializers import (
     Tt_AssetsListSerializer,
     Tt_AssetsPandasSerializer,
     Tt_AssetsUpdateSerializer,
+    AssetsGroupSumarySerializer,
 )
 
 from rest_pandas import PandasViewSet, PandasUnstackedSerializer
@@ -225,13 +227,11 @@ class Tt_AssetsBulkViewSet(generics.CreateAPIView):
                 record["u_user"] = self.request.user.uuid
         return super(Tt_AssetsBulkViewSet, self).get_serializer(*args, **kwargs)
 
-#
-#
-# 資産トランのPivotデータ取得
-#
-# insert_yyyymm_from, insert_yyyymm_toが設定されている場合は絞込も行う
-#
 class AssetsPandasViewSet(PandasViewSet):
+    '''
+    資産トランのPivotデータ取得    
+    insert_yyyymm_from, insert_yyyymm_toが設定されている場合は絞込も行う    
+    '''
     queryset = Tt_Assets.objects.all().order_by('insert_yyyymm').reverse()
     serializer_class = Tt_AssetsPandasSerializer
     pandas_serializer_class = PandasUnstackedSerializer
@@ -250,20 +250,101 @@ class AssetsPandasViewSet(PandasViewSet):
         if insert_yyyymm_to :
             records = records.filter(insert_yyyymm__lte=insert_yyyymm_to)
         return records;
-'''
-# Filterはモデルが無いと実装厳しそうなので諦める
-# 預金グループ単位サマリーフィルタークラス
-#class DepositSumaryViewFilter(filters.FilterSet):
-    #delete_flag = filters.BooleanFilter(field_name="delete_flag")
-    depositItem_key = filters.ModelMultipleChoiceFilter(
-        queryset=Tm_DepositItem.objects.all()
-    )
-    #class Meta:
-    #    model = Tt_Deposit
-    #    fields = {
-    #        'insert_yyyymm' : ['lte','gte']
-    #    }
-'''
+
+class Tt_AssetsGroupSumaryViewSet(DepositBaseReadOnlyModelViewSet):
+    '''
+    資産グループ・日付単位のサマリーレコードを返すView
+
+    DepositItemDateSumaryViewSet を参考に作成
+    '''
+    serializer_class = AssetsGroupSumarySerializer
+
+    def get_queryset(self):
+        # 処理概要
+        # 1. パラメータ取得
+        # 2. 資産トランから資産グループ・月単位のデータを取得する
+        # 3. シリアライズ項目に合わせてい結果を格納する
+        
+        #-------------------------------------------------
+        # 1. パラメータ取得
+        #-------------------------------------------------
+        insert_yyyymm_from = None
+        insert_yyyymm_to = None
+        if 'insert_yyyymm_from' in self.request.GET:
+            insert_yyyymm_from = self.request.GET.get('insert_yyyymm_from')
+        if 'insert_yyyymm_to' in self.request.GET:
+            insert_yyyymm_to = self.request.GET.get('insert_yyyymm_to')
+
+        #-------------------------------------------------
+        # 2. 資産トランから資産グループ・月単位のデータを取得する
+        #-------------------------------------------------
+        records = Tm_DepositGroup.objects.filter(
+                deposititem_deposit_group_key__assets_deposititem_key__delete_flag=False
+            ).values(
+                'deposit_group_key'
+                ,'deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm'
+            ).annotate(
+                sum_value=Sum(
+                    F('deposititem_deposit_group_key__assets_deposititem_key__deposit_value') * 
+                    F('deposititem_deposit_group_key__assets_deposititem_key__deposit_type')
+                )
+            ).filter(
+                sum_value__isnull=False
+            ).values(
+                'deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm'
+                ,'deposit_group_key'
+                , 'deposit_group_name'
+                ,'sum_value'
+            )
+        #
+        # FROM、TO 絞込実施
+        if insert_yyyymm_from :
+            records = records.filter(deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm__gte=insert_yyyymm_from)
+        if insert_yyyymm_to :
+            records = records.filter(deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm__lte=insert_yyyymm_to)
+
+
+        #-------------------------------------------------
+        # 3. シリアライズ項目に合わせてい結果を格納する
+        #    deposit_group_key
+        #    deposit_group_name
+        #    insert_yyyymm
+        #    value
+        #-------------------------------------------------
+        results = []
+        for record in records:
+            # Filter が動作しないことが判明手動でやるか・・。
+            obj = None
+            if (insert_yyyymm_from) :
+                if (insert_yyyymm_from > record['deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm'] ) :
+                    pass
+                else:
+                    obj = record
+            if (insert_yyyymm_to) :
+                if ( insert_yyyymm_to < record['deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm'] ) :
+                    pass
+                else:
+                    obj = record
+            if obj :
+                results.append(
+                    {
+                        'deposit_group_key': record['deposit_group_key'],
+                        'deposit_group_name' : record['deposit_group_name'],
+                        'insert_yyyymm' : record['deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm'],
+                        'value' : record['sum_value']
+                    }
+                )
+            '''
+            results.append(
+                {
+                    'deposit_group_key': record['deposit_group_key'],
+                    'deposit_group_name' : record['deposit_group_name'],
+                    'insert_yyyymm' : record['deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm'],
+                    'value' : record['sum_value']
+                }
+            )
+            '''
+        return results
 
 class DepositItemDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
     '''
@@ -361,7 +442,7 @@ class DepositItemDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
                 'depositItem_name': now_depositItem_name,
                 'insert_yyyymm': record['insert_yyyymm'],
                 'value' : now_sum_value
-            });
+            })
             # 次のために年月加算
             now_date = insert_yyyymm_date + relativedelta(months=1)
         

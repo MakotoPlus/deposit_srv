@@ -248,7 +248,14 @@ class Tt_AssetsListSerializer(serializers.ListSerializer):
         tt_assets = [Tt_Assets(**item) for item in validated_data]
         Tt_Assets.objects.bulk_create(tt_assets)
         return tt_assets
-        
+
+#資産グループ・日付単位のサマリーシリアライザー
+class AssetsGroupSumarySerializer(serializers.Serializer):
+    deposit_group_key = serializers.IntegerField()
+    deposit_group_name = serializers.CharField()
+    insert_yyyymm = serializers.CharField(required=False, max_length=10)
+    value = serializers.IntegerField()
+
 
 # 資産トランシリアライザー
 class Tt_AssetsSerializer(serializers.ModelSerializer):

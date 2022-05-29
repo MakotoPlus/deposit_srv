@@ -21,6 +21,7 @@ from .views import (
     Tt_AssetsBulkViewSet,
     AssetsPandasViewSet,
     Tt_AssetsBulkUpdatesViewSet,
+    Tt_AssetsGroupSumaryViewSet,
     )
 
 #from django.urls import path
@@ -46,6 +47,7 @@ router.register(r'deposit_date_sumary_list', DepositDateSumaryViewSet, basename=
 router.register(r'deposit_item_date_sumary_list', DepositItemDateSumaryViewSet, basename="deposit_item_date_sumary_list")
 router.register(r'assets', Tt_AssetsViewSet, basename="assets")
 router.register(r'assets_pandas', AssetsPandasViewSet, basename="assets_pandas")
+router.register(r'assets_group_sumary_list', Tt_AssetsGroupSumaryViewSet, basename="assets_group_sumary_list")
 
 
 
