@@ -255,7 +255,19 @@ class Tt_AssetsGroupSumaryViewSet(DepositBaseReadOnlyModelViewSet):
     '''
     資産グループ・日付単位のサマリーレコードを返すView
 
-    DepositItemDateSumaryViewSet を参考に作成
+    イメージSQL:
+    SELECT 
+        "Tt_Assets"."insert_yyyymm"
+        , "Tm_DepositItem"."deposit_group_key_id"
+        , "Tm_DepositGroup"."deposit_group_name"
+        , SUM(("Tt_Assets"."deposit_value" * "Tt_Assets"."deposit_type")) AS "sum_value" 
+    FROM 
+        "Tt_Assets" 
+        INNER JOIN "Tm_DepositItem" ON ("Tt_Assets"."depositItem_key_id" = "Tm_DepositItem"."depositItem_key") 
+        INNER JOIN "Tm_DepositGroup" ON ("Tm_DepositItem"."deposit_group_key_id" = "Tm_DepositGroup"."deposit_group_key") 
+    GROUP BY 
+        "Tt_Assets"."insert_yyyymm", "Tm_DepositItem"."deposit_group_key_id", "Tm_DepositGroup"."deposit_group_name"
+
     '''
     serializer_class = AssetsGroupSumarySerializer
 
@@ -277,31 +289,28 @@ class Tt_AssetsGroupSumaryViewSet(DepositBaseReadOnlyModelViewSet):
 
         #-------------------------------------------------
         # 2. 資産トランから資産グループ・月単位のデータを取得する
+        # 参考サイト
+        # https://note.crohaco.net/2014/django-aggregate/
         #-------------------------------------------------
-        records = Tm_DepositGroup.objects.filter(
-                deposititem_deposit_group_key__assets_deposititem_key__delete_flag=False
+        records = Tt_Assets.objects.prefetch_related(
+                'depositItem_key__deposit_group_key__deposit_group_name',
+                'depositItem_key__deposit_group_key'
             ).values(
-                'deposit_group_key'
-                ,'deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm'
+                'insert_yyyymm'
+                ,'depositItem_key__deposit_group_key'
+                ,'depositItem_key__deposit_group_key__deposit_group_name'
             ).annotate(
                 sum_value=Sum(
-                    F('deposititem_deposit_group_key__assets_deposititem_key__deposit_value') * 
-                    F('deposititem_deposit_group_key__assets_deposititem_key__deposit_type')
+                    F('deposit_value') * 
+                    F('deposit_type')
                 )
-            ).filter(
-                sum_value__isnull=False
-            ).values(
-                'deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm'
-                ,'deposit_group_key'
-                , 'deposit_group_name'
-                ,'sum_value'
-            )
+            ).order_by('insert_yyyymm', 'depositItem_key__deposit_group_key')
         #
         # FROM、TO 絞込実施
         if insert_yyyymm_from :
-            records = records.filter(deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm__gte=insert_yyyymm_from)
+            records = records.filter(insert_yyyymm__gte=insert_yyyymm_from)
         if insert_yyyymm_to :
-            records = records.filter(deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm__lte=insert_yyyymm_to)
+            records = records.filter(insert_yyyymm__lte=insert_yyyymm_to)
 
 
         #-------------------------------------------------
@@ -313,37 +322,14 @@ class Tt_AssetsGroupSumaryViewSet(DepositBaseReadOnlyModelViewSet):
         #-------------------------------------------------
         results = []
         for record in records:
-            # Filter が動作しないことが判明手動でやるか・・。
-            obj = None
-            if (insert_yyyymm_from) :
-                if (insert_yyyymm_from > record['deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm'] ) :
-                    pass
-                else:
-                    obj = record
-            if (insert_yyyymm_to) :
-                if ( insert_yyyymm_to < record['deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm'] ) :
-                    pass
-                else:
-                    obj = record
-            if obj :
-                results.append(
-                    {
-                        'deposit_group_key': record['deposit_group_key'],
-                        'deposit_group_name' : record['deposit_group_name'],
-                        'insert_yyyymm' : record['deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm'],
-                        'value' : record['sum_value']
-                    }
-                )
-            '''
             results.append(
                 {
-                    'deposit_group_key': record['deposit_group_key'],
-                    'deposit_group_name' : record['deposit_group_name'],
-                    'insert_yyyymm' : record['deposititem_deposit_group_key__assets_deposititem_key__insert_yyyymm'],
+                    'deposit_group_key': record['depositItem_key__deposit_group_key'],
+                    'deposit_group_name' : record['depositItem_key__deposit_group_key__deposit_group_name'],
+                    'insert_yyyymm' : record['insert_yyyymm'],
                     'value' : record['sum_value']
                 }
             )
-            '''
         return results
 
 class DepositItemDateSumaryViewSet(DepositBaseReadOnlyModelViewSet):
