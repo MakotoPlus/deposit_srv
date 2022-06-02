@@ -5,9 +5,6 @@ __pycache__/
 *.whl
 */*/__pycache__/
 */__pycache__/
-__init__.py
-*/__init__.py
-**/__init__.py
 db.sqlite.20220107
 env/
 deposit_srv/settings_master.py

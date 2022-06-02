@@ -1,0 +1,59 @@
+*** Starting uWSGI 2.0.20 (64bit) on [Wed Jun  1 20:11:51 2022] ***
+compiled with version: 10.2.1 20210110 on 31 May 2022 12:54:02
+os: Linux-4.15.0-177-generic #186-Ubuntu SMP Thu Apr 14 20:23:07 UTC 2022
+nodename: wslDepositSrvHost01
+machine: x86_64
+clock source: unix
+pcre jit disabled
+detected number of CPU cores: 4
+current working directory: /workspace/deposit_srv
+detected binary path: /usr/local/bin/uwsgi
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+chdir() to /workspace/deposit_srv
+*** WARNING: you are running uWSGI without its master process manager ***
+your memory page size is 4096 bytes
+detected max file descriptor number: 1048576
+lock engine: pthread robust mutexes
+thunder lock: disabled (you can enable it with --thunder-lock)
+uwsgi socket 0 bound to UNIX address 8000 fd 3
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+Python version: 3.8.13 (default, May 11 2022, 08:23:48)  [GCC 10.2.1 20210110]
+*** Python threads support is disabled. You can enable it with --enable-threads ***
+Python main interpreter initialized at 0x55c2582e7ce0
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+your server socket listen backlog is limited to 100 connections
+your mercy for graceful operations on workers is 60 seconds
+mapped 72920 bytes (71 KB) for 1 cores
+*** Operational MODE: single process ***
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.8/site-packages/django/apps/config.py", line 107, in create
+    entry = module.default_app_config
+AttributeError: module 'deposit' has no attribute 'default_app_config'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "env/wsgi.py", line 16, in <module>
+    application = get_wsgi_application()
+  File "/usr/local/lib/python3.8/site-packages/django/core/wsgi.py", line 12, in get_wsgi_application
+    django.setup(set_prefix=False)
+  File "/usr/local/lib/python3.8/site-packages/django/__init__.py", line 24, in setup
+    apps.populate(settings.INSTALLED_APPS)
+  File "/usr/local/lib/python3.8/site-packages/django/apps/registry.py", line 91, in populate
+    app_config = AppConfig.create(entry)
+  File "/usr/local/lib/python3.8/site-packages/django/apps/config.py", line 110, in create
+    return cls(entry, module)
+  File "/usr/local/lib/python3.8/site-packages/django/apps/config.py", line 40, in __init__
+    self.path = self._path_from_module(app_module)
+  File "/usr/local/lib/python3.8/site-packages/django/apps/config.py", line 70, in _path_from_module
+    raise ImproperlyConfigured(
+django.core.exceptions.ImproperlyConfigured: The app module <module 'deposit' (namespace)> has multiple filesystem locations (['/workspace/deposit_srv/./deposit', '/workspace/deposit_srv/deposit']); you must configure this app with an AppConfig subclass with a 'path' class attribute.
+unable to load app 0 (mountpoint='') (callable not found or import error)
+*** no app loaded. going in full dynamic mode ***
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+*** uWSGI is running in multiple interpreter mode ***
+spawned uWSGI worker 1 (and the only) (pid: 31, cores: 1)
